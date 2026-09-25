@@ -1,0 +1,25 @@
+{
+  "name": "@stormvpn/node-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StormVPN node agent – runs on every WireGuard VPN node",
+  "type": "module",
+  "bin": {
+    "stormvpn-agent": "./dist/stormvpn-agent.mjs"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch --env-file-if-exists=.env src/main.ts run",
+    "start": "node dist/stormvpn-agent.mjs run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@stormvpn/config": "workspace:*",
+    "@stormvpn/crypto": "workspace:*",
+    "@stormvpn/validation": "workspace:*",
+    "zod": "^4.6.5"
+  }
+}
