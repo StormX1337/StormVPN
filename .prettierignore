@@ -1,0 +1,8 @@
+node_modules
+dist
+.next
+coverage
+pnpm-lock.yaml
+packages/database/generated
+packages/database/prisma/migrations
+infra/monitoring/grafana/dashboards/*.json

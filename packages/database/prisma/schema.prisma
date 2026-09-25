@@ -1,0 +1,756 @@
+// StormVPN database schema (PostgreSQL 16+).
+// Conventions: UUIDv7 primary keys (time ordered), snake_case table names,
+// BigInt for byte counters, soft deletion only where history must be kept.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = ""
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  USER
+  SUPPORT
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+enum ClientType {
+  WEB
+  NATIVE
+}
+
+enum TokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum DevicePlatform {
+  WINDOWS
+  MACOS
+  LINUX
+  ANDROID
+  IOS
+  ROUTER
+  OTHER
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  PAUSED
+}
+
+enum BillingInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum BillingProvider {
+  NONE
+  STRIPE
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  REFUNDED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+enum CouponDuration {
+  ONCE
+  REPEATING
+  FOREVER
+}
+
+enum Region {
+  EUROPE
+  NORTH_AMERICA
+  SOUTH_AMERICA
+  ASIA_PACIFIC
+  MIDDLE_EAST
+  AFRICA
+  OCEANIA
+}
+
+enum ServerStatus {
+  ACTIVE
+  DISABLED
+  MAINTENANCE
+}
+
+enum NodeStatus {
+  ONLINE
+  OFFLINE
+  DEGRADED
+  MAINTENANCE
+}
+
+enum ServerClass {
+  STANDARD
+  PREMIUM
+  STREAMING
+}
+
+enum VpnProtocol {
+  WIREGUARD
+}
+
+enum ProviderType {
+  OWN_WIREGUARD
+  PARTNER
+}
+
+enum PeerStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ConnectionStatus {
+  CONNECTING
+  CONNECTED
+  DISCONNECTED
+  FAILED
+}
+
+enum ConnectionSource {
+  API
+  CONFIG
+}
+
+enum Severity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ActorType {
+  USER
+  ADMIN
+  SYSTEM
+  NODE
+}
+
+enum RiskSubjectType {
+  USER
+  IP
+}
+
+enum WebhookStatus {
+  PROCESSING
+  PROCESSED
+  FAILED
+}
+
+// ───────────────────────────── Identity ─────────────────────────────
+
+model User {
+  id               String     @id @default(uuid(7)) @db.Uuid
+  email            String     @unique @db.VarChar(254)
+  emailVerifiedAt  DateTime?
+  passwordHash     String
+  name             String?    @db.VarChar(100)
+  role             Role       @default(USER)
+  status           UserStatus @default(ACTIVE)
+  suspendedAt      DateTime?
+  suspendedReason  String?    @db.VarChar(500)
+  totpSecretEnc    String?
+  totpEnabledAt    DateTime?
+  totpLastUsedStep Int?
+  stripeCustomerId String?    @unique
+  trialUsedAt      DateTime?
+  riskScore        Int        @default(0)
+  preferredCountry String?    @db.Char(2)
+  preferredRegion  Region?
+  lastLoginAt      DateTime?
+  lastLoginIp      String?    @db.VarChar(45)
+  deletedAt        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  sessions           Session[]
+  verificationTokens VerificationToken[]
+  backupCodes        BackupCode[]
+  devices            Device[]
+  subscriptions      Subscription[]
+  payments           Payment[]
+  invoices           Invoice[]
+  peers              VPNPeer[]
+  connections        VPNConnection[]
+  trafficUsage       TrafficUsage[]
+  auditLogs          AuditLog[]          @relation("AuditActor")
+  securityEvents     SecurityEvent[]     @relation("SecurityEventUser")
+  resolvedEvents     SecurityEvent[]     @relation("SecurityEventResolver")
+  riskFlags          RiskFlag[]
+  couponRedemptions  CouponRedemption[]
+  favorites          UserFavorite[]
+  settingsUpdates    SystemSetting[]
+
+  @@index([status])
+  @@index([role])
+  @@index([createdAt])
+  @@map("users")
+}
+
+/// Login session (one per signed-in browser / native client). Holds the rotating refresh token.
+model Session {
+  id                       String     @id @default(uuid(7)) @db.Uuid
+  userId                   String     @db.Uuid
+  refreshTokenHash         String     @unique @db.Char(64)
+  previousRefreshTokenHash String?    @db.Char(64)
+  rotatedAt                DateTime?
+  clientType               ClientType @default(WEB)
+  userAgent                String?    @db.VarChar(512)
+  ipAddress                String?    @db.VarChar(45)
+  mfaVerified              Boolean    @default(false)
+  createdAt                DateTime   @default(now())
+  lastUsedAt               DateTime   @default(now())
+  expiresAt                DateTime
+  revokedAt                DateTime?
+  revokedReason            String?    @db.VarChar(100)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([previousRefreshTokenHash])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id        String       @id @default(uuid(7)) @db.Uuid
+  userId    String       @db.Uuid
+  purpose   TokenPurpose
+  tokenHash String       @unique @db.Char(64)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+  @@map("verification_tokens")
+}
+
+model BackupCode {
+  id        String    @id @default(uuid(7)) @db.Uuid
+  userId    String    @db.Uuid
+  codeHash  String    @db.Char(64)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, codeHash])
+  @@map("backup_codes")
+}
+
+/// A customer device (laptop, phone, router). WireGuard keys live on the per-server peers.
+model Device {
+  id            String         @id @default(uuid(7)) @db.Uuid
+  userId        String         @db.Uuid
+  name          String         @db.VarChar(64)
+  platform      DevicePlatform
+  clientVersion String?        @db.VarChar(32)
+  lastSeenAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  peers       VPNPeer[]
+  connections VPNConnection[]
+
+  @@index([userId])
+  @@map("devices")
+}
+
+model UserFavorite {
+  userId    String   @db.Uuid
+  serverId  String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server VPNServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@id([userId, serverId])
+  @@index([serverId])
+  @@map("user_favorites")
+}
+
+// ───────────────────────────── Billing ─────────────────────────────
+
+model Plan {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  slug              String          @unique @db.VarChar(42)
+  name              String          @db.VarChar(64)
+  description       String?         @db.VarChar(500)
+  priceCents        Int
+  currency          String          @default("eur") @db.Char(3)
+  billingInterval   BillingInterval @default(MONTH)
+  intervalCount     Int             @default(1)
+  trialDays         Int             @default(0)
+  maxDevices        Int
+  /// Maximum simultaneous VPN connections.
+  maxSessions       Int
+  /// Monthly traffic allowance in bytes; NULL = unlimited.
+  trafficLimitBytes BigInt?
+  /// ISO 3166-1 alpha-2 codes; empty = all countries.
+  allowedCountries  String[]        @default([])
+  serverClasses     ServerClass[]   @default([STANDARD])
+  priority          Int             @default(0)
+  features          Json            @default("[]")
+  isActive          Boolean         @default(true)
+  isPublic          Boolean         @default(true)
+  sortOrder         Int             @default(0)
+  stripeProductId   String?         @unique
+  stripePriceId     String?         @unique
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([isActive, isPublic, sortOrder])
+  @@map("plans")
+}
+
+model Subscription {
+  id                    String             @id @default(uuid(7)) @db.Uuid
+  userId                String             @db.Uuid
+  planId                String             @db.Uuid
+  status                SubscriptionStatus
+  provider              BillingProvider    @default(NONE)
+  stripeSubscriptionId  String?            @unique
+  stripePriceId         String?
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  canceledAt            DateTime?
+  endedAt               DateTime?
+  trialStart            DateTime?
+  trialEnd              DateTime?
+  couponId              String?            @db.Uuid
+  paymentMethodBrand    String?            @db.VarChar(32)
+  paymentMethodLast4    String?            @db.Char(4)
+  paymentMethodExpMonth Int?
+  paymentMethodExpYear  Int?
+  /// Timestamp (Stripe `created` of the last applied event) to discard out-of-order webhooks.
+  providerUpdatedAt     DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan     Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
+  coupon   Coupon?   @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  invoices Invoice[]
+  payments Payment[]
+
+  @@index([userId, status])
+  @@index([status, currentPeriodEnd])
+  @@index([planId])
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id               String        @id @default(uuid(7)) @db.Uuid
+  userId           String        @db.Uuid
+  subscriptionId   String?       @db.Uuid
+  stripeInvoiceId  String?       @unique
+  number           String?       @db.VarChar(64)
+  status           InvoiceStatus
+  amountDueCents   Int
+  amountPaidCents  Int           @default(0)
+  currency         String        @db.Char(3)
+  hostedInvoiceUrl String?
+  invoicePdfUrl    String?
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  payments     Payment[]
+
+  @@index([userId, createdAt])
+  @@map("invoices")
+}
+
+model Payment {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  userId            String          @db.Uuid
+  subscriptionId    String?         @db.Uuid
+  invoiceId         String?         @db.Uuid
+  amountCents       Int
+  currency          String          @db.Char(3)
+  status            PaymentStatus
+  provider          BillingProvider @default(STRIPE)
+  /// Provider reference used for idempotent upserts (Stripe invoice id / payment intent id).
+  providerReference String?         @unique
+  failureReason     String?         @db.VarChar(500)
+  paidAt            DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  invoice      Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+model Coupon {
+  id                    String         @id @default(uuid(7)) @db.Uuid
+  code                  String         @unique @db.VarChar(40)
+  name                  String?        @db.VarChar(100)
+  percentOff            Int?
+  amountOffCents        Int?
+  currency              String?        @db.Char(3)
+  duration              CouponDuration @default(ONCE)
+  durationInMonths      Int?
+  maxRedemptions        Int?
+  timesRedeemed         Int            @default(0)
+  validFrom             DateTime?
+  validUntil            DateTime?
+  isActive              Boolean        @default(true)
+  /// Restrict to plan ids; empty = all plans.
+  planIds               String[]       @default([])
+  stripeCouponId        String?        @unique
+  stripePromotionCodeId String?        @unique
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  redemptions   CouponRedemption[]
+  subscriptions Subscription[]
+
+  @@index([isActive, validUntil])
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  couponId   String   @db.Uuid
+  userId     String   @db.Uuid
+  redeemedAt DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, userId])
+  @@map("coupon_redemptions")
+}
+
+/// Idempotency ledger for inbound webhooks (Stripe event ids).
+model WebhookEvent {
+  id          String          @id @db.VarChar(255)
+  provider    BillingProvider
+  type        String          @db.VarChar(100)
+  status      WebhookStatus   @default(PROCESSING)
+  attempts    Int             @default(1)
+  lastError   String?         @db.VarChar(2000)
+  payload     Json?
+  receivedAt  DateTime        @default(now())
+  processedAt DateTime?
+
+  @@index([status, receivedAt])
+  @@map("webhook_events")
+}
+
+// ───────────────────────────── VPN infrastructure ─────────────────────────────
+
+/// Customer facing VPN server entry (catalogue, location, capacity, network plan).
+model VPNServer {
+  id                    String       @id @default(uuid(7)) @db.Uuid
+  name                  String       @unique @db.VarChar(32)
+  hostname              String       @unique @db.VarChar(253)
+  countryCode           String       @db.Char(2)
+  city                  String       @db.VarChar(64)
+  region                Region
+  latitude              Float?
+  longitude             Float?
+  publicIpv4            String       @db.VarChar(15)
+  publicIpv6            String?      @db.VarChar(45)
+  privateIp             String?      @db.VarChar(45)
+  wireguardPort         Int          @default(51820)
+  protocol              VpnProtocol  @default(WIREGUARD)
+  provider              ProviderType @default(OWN_WIREGUARD)
+  serverClass           ServerClass  @default(STANDARD)
+  status                ServerStatus @default(ACTIVE)
+  /// Maximum concurrent connections accepted by this server.
+  capacity              Int          @default(500)
+  bandwidthCapacityMbps Int          @default(1000)
+  wgSubnetV4            String       @default("10.80.0.0/20") @db.VarChar(18)
+  wgSubnetV6            String?      @db.VarChar(49)
+  dnsServers            String[]     @default([])
+  tags                  String[]     @default([])
+  /// Emergency stop: when engaged the node removes every peer immediately.
+  killSwitchEngaged     Boolean      @default(false)
+  killSwitchReason      String?      @db.VarChar(500)
+  /// Monotonic revision of the desired peer set; nodes sync when it changes.
+  peerRevision          Int          @default(1)
+  enrollmentTokenHash   String?      @unique @db.Char(64)
+  enrollmentExpiresAt   DateTime?
+  deletedAt             DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  node         VPNNode?
+  peers        VPNPeer[]
+  connections  VPNConnection[]
+  trafficUsage TrafficUsage[]
+  favorites    UserFavorite[]
+
+  @@index([status, countryCode])
+  @@index([region])
+  @@map("vpn_servers")
+}
+
+/// Runtime identity + latest metrics of the agent running on a server.
+model VPNNode {
+  id                  String     @id @default(uuid(7)) @db.Uuid
+  serverId            String     @unique @db.Uuid
+  tokenHash           String     @unique @db.Char(64)
+  tokenPrefix         String     @db.VarChar(16)
+  status              NodeStatus @default(OFFLINE)
+  agentVersion        String?    @db.VarChar(32)
+  hostname            String     @db.VarChar(253)
+  os                  String?    @db.VarChar(120)
+  kernel              String?    @db.VarChar(120)
+  wireguardPublicKey  String     @db.Char(44)
+  publicIpv4          String?    @db.VarChar(15)
+  publicIpv6          String?    @db.VarChar(45)
+  cpuPercent          Float      @default(0)
+  memoryPercent       Float      @default(0)
+  memoryTotalBytes    BigInt     @default(0)
+  diskPercent         Float      @default(0)
+  rxBps               BigInt     @default(0)
+  txBps               BigInt     @default(0)
+  loadPercent         Float      @default(0)
+  activeConnections   Int        @default(0)
+  activePeers         Int        @default(0)
+  totalRxBytes        BigInt     @default(0)
+  totalTxBytes        BigInt     @default(0)
+  uptimeSeconds       BigInt     @default(0)
+  appliedPeerRevision Int        @default(0)
+  healthChecks        Json?
+  lastHeartbeatAt     DateTime?
+  registeredAt        DateTime   @default(now())
+  tokenRotatedAt      DateTime?
+  updatedAt           DateTime   @updatedAt
+
+  server     VPNServer       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  heartbeats NodeHeartbeat[]
+
+  @@index([status, lastHeartbeatAt])
+  @@map("vpn_nodes")
+}
+
+/// Sampled heartbeat history (≈1/min per node), pruned by the worker.
+model NodeHeartbeat {
+  id                String     @id @default(uuid(7)) @db.Uuid
+  nodeId            String     @db.Uuid
+  status            NodeStatus
+  cpuPercent        Float
+  memoryPercent     Float
+  diskPercent       Float
+  rxBps             BigInt
+  txBps             BigInt
+  loadPercent       Float
+  activeConnections Int
+  activePeers       Int
+  createdAt         DateTime   @default(now())
+
+  node VPNNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([nodeId, createdAt])
+  @@index([createdAt])
+  @@map("node_heartbeats")
+}
+
+/// A WireGuard peer: one device registered on one server. Private keys are never stored.
+model VPNPeer {
+  id              String     @id @default(uuid(7)) @db.Uuid
+  userId          String     @db.Uuid
+  deviceId        String     @db.Uuid
+  serverId        String     @db.Uuid
+  publicKey       String     @db.Char(44)
+  /// AES-256-GCM encrypted pre-shared key (see @stormvpn/crypto DataEncryptor).
+  presharedKeyEnc String?
+  ipv4Address     String     @db.VarChar(15)
+  ipv6Address     String?    @db.VarChar(45)
+  status          PeerStatus @default(ACTIVE)
+  disabledReason  String?    @db.VarChar(200)
+  lastHandshakeAt DateTime?
+  rxBytes         BigInt     @default(0)
+  txBytes         BigInt     @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device      Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  server      VPNServer       @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  connections VPNConnection[]
+
+  @@unique([serverId, publicKey])
+  @@unique([serverId, ipv4Address])
+  @@unique([deviceId, serverId])
+  @@index([userId, status])
+  @@index([serverId, status])
+  @@map("vpn_peers")
+}
+
+model VPNConnection {
+  id               String           @id @default(uuid(7)) @db.Uuid
+  userId           String           @db.Uuid
+  deviceId         String?          @db.Uuid
+  peerId           String?          @db.Uuid
+  serverId         String           @db.Uuid
+  status           ConnectionStatus @default(CONNECTING)
+  source           ConnectionSource @default(API)
+  startedAt        DateTime         @default(now())
+  connectedAt      DateTime?
+  endedAt          DateTime?
+  lastHandshakeAt  DateTime?
+  rxBytes          BigInt           @default(0)
+  txBytes          BigInt           @default(0)
+  disconnectReason String?          @db.VarChar(100)
+
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device Device?   @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  peer   VPNPeer?  @relation(fields: [peerId], references: [id], onDelete: SetNull)
+  server VPNServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([serverId, status])
+  @@index([peerId, status])
+  @@index([status, lastHandshakeAt])
+  @@index([startedAt])
+  @@map("vpn_connections")
+}
+
+/// Daily aggregated traffic per user and server (volume only – no destinations are ever logged).
+model TrafficUsage {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  serverId  String   @db.Uuid
+  day       DateTime @db.Date
+  rxBytes   BigInt   @default(0)
+  txBytes   BigInt   @default(0)
+  updatedAt DateTime @updatedAt
+
+  user   User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  server VPNServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, serverId, day])
+  @@index([day])
+  @@index([serverId, day])
+  @@map("traffic_usage")
+}
+
+// ───────────────────────────── Security & operations ─────────────────────────────
+
+model AuditLog {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  actorId    String?   @db.Uuid
+  actorType  ActorType
+  action     String    @db.VarChar(100)
+  targetType String?   @db.VarChar(50)
+  targetId   String?   @db.VarChar(100)
+  metadata   Json?
+  ipAddress  String?   @db.VarChar(45)
+  userAgent  String?   @db.VarChar(512)
+  createdAt  DateTime  @default(now())
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([targetType, targetId])
+  @@index([action, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model SecurityEvent {
+  id           String    @id @default(uuid(7)) @db.Uuid
+  userId       String?   @db.Uuid
+  type         String    @db.VarChar(50)
+  severity     Severity  @default(INFO)
+  ipAddress    String?   @db.VarChar(45)
+  userAgent    String?   @db.VarChar(512)
+  metadata     Json?
+  resolvedAt   DateTime?
+  resolvedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+
+  user       User? @relation("SecurityEventUser", fields: [userId], references: [id], onDelete: Cascade)
+  resolvedBy User? @relation("SecurityEventResolver", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@index([severity, resolvedAt])
+  @@index([createdAt])
+  @@map("security_events")
+}
+
+model RiskFlag {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  subjectType  RiskSubjectType
+  subjectValue String          @db.VarChar(100)
+  userId       String?         @db.Uuid
+  reason       String          @db.VarChar(500)
+  score        Int
+  source       String          @default("AUTOMATED") @db.VarChar(20)
+  expiresAt    DateTime?
+  resolvedAt   DateTime?
+  createdAt    DateTime        @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([subjectType, subjectValue])
+  @@index([userId, resolvedAt])
+  @@map("risk_flags")
+}
+
+model SystemSetting {
+  key         String   @id @db.VarChar(100)
+  value       Json
+  updatedById String?  @db.Uuid
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation(fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@map("system_settings")
+}

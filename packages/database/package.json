@@ -1,0 +1,40 @@
+{
+  "name": "@stormvpn/database",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "prisma"],
+  "scripts": {
+    "prisma": "prisma",
+    "generate": "prisma generate",
+    "build": "prisma generate && tsup",
+    "dev": "tsup --watch",
+    "typecheck": "prisma generate && tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "seed": "tsx src/seed/index.ts",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "clean": "rm -rf dist generated .turbo"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
+    "@stormvpn/crypto": "workspace:*",
+    "@stormvpn/types": "workspace:*",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.15.5",
+    "dotenv": "^17.2.0",
+    "prisma": "7.10.0"
+  }
+}

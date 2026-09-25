@@ -1,0 +1,33 @@
+{
+  "name": "@stormvpn/core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Domain services shared by the API, worker and scheduler",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "@stormvpn/config": "workspace:*",
+    "@stormvpn/crypto": "workspace:*",
+    "@stormvpn/database": "workspace:*",
+    "@stormvpn/types": "workspace:*",
+    "@stormvpn/validation": "workspace:*",
+    "bullmq": "^6.3.9",
+    "ioredis": "^5.11.1"
+  }
+}

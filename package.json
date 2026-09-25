@@ -1,0 +1,45 @@
+{
+  "name": "stormvpn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "StormVPN – self-hosted WireGuard VPN SaaS platform",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "build:packages": "turbo run build --filter=./packages/*",
+    "dev": "turbo run dev --parallel --filter=@stormvpn/api --filter=@stormvpn/web --filter=@stormvpn/admin --filter=@stormvpn/worker --filter=@stormvpn/scheduler",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:integration": "turbo run test:integration --concurrency=1",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @stormvpn/database prisma generate",
+    "db:migrate": "pnpm --filter @stormvpn/database prisma migrate dev",
+    "db:deploy": "pnpm --filter @stormvpn/database prisma migrate deploy",
+    "db:seed": "pnpm --filter @stormvpn/database seed",
+    "db:studio": "pnpm --filter @stormvpn/database prisma studio",
+    "prisma": "pnpm --filter @stormvpn/database prisma",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^22.19.0",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.0.0",
+    "prettier": "^3.6.2",
+    "prettier-plugin-tailwindcss": "^0.7.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "turbo": "^2.11.4",
+    "typescript": "5.9.3",
+    "typescript-eslint": "^8.70.1",
+    "vite": "^7.1.0",
+    "vitest": "^5.0.2"
+  }
+}
