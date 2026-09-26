@@ -1,0 +1,73 @@
+name: Desktop (Windows)
+
+on:
+  push:
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  # Official WireGuard for Windows sources for tunnel.dll (embeddable DLL service).
+  WIREGUARD_WINDOWS_REF: v1.1.1
+
+jobs:
+  windows:
+    name: Build Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: apps/desktop/src-tauri
+
+      - name: Cache WireGuard libraries
+        id: wireguard-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/desktop/src-tauri/binaries/tunnel.dll
+            apps/desktop/src-tauri/binaries/wireguard.dll
+          key: wireguard-${{ env.WIREGUARD_WINDOWS_REF }}-amd64
+
+      - name: Build tunnel.dll and fetch wireguard.dll
+        if: steps.wireguard-cache.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          git clone --depth 1 --branch %WIREGUARD_WINDOWS_REF% https://github.com/WireGuard/wireguard-windows.git "%RUNNER_TEMP%\wgw" || exit /b 1
+          call "%RUNNER_TEMP%\wgw\embeddable-dll-service\build.bat" || exit /b 1
+          copy /y "%RUNNER_TEMP%\wgw\embeddable-dll-service\amd64\tunnel.dll" apps\desktop\src-tauri\binaries\ || exit /b 1
+          copy /y "%RUNNER_TEMP%\wgw\.deps\wireguard-nt\bin\amd64\wireguard.dll" apps\desktop\src-tauri\binaries\ || exit /b 1
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:packages
+
+      - name: Build installer
+        working-directory: apps/desktop
+        env:
+          # Optional repository variable: preset server address (e.g. https://vpn.example.com).
+          VITE_STORMVPN_API_URL: ${{ vars.STORMVPN_API_URL }}
+        run: pnpm tauri build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StormVPN-Windows
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error

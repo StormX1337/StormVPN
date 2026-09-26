@@ -33,3 +33,6 @@ logs/
 .demo-nodes.json
 docker-compose.override.yml
 deploy/
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/binaries/*.dll

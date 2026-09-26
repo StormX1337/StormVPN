@@ -1,0 +1,18 @@
+@import 'tailwindcss';
+@import '@stormvpn/ui/styles.css';
+
+@source '../../../packages/ui/src';
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  user-select: none;
+}
+
+input {
+  user-select: text;
+}
