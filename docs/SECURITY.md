@@ -63,7 +63,7 @@ Security is the primary design constraint of StormVPN. This document lists the t
 - **Keys**: the node generates its WireGuard private key locally (`/var/lib/stormvpn-agent/server.key`, 0600). Only the public key is registered.
 - **Config hardening**: the agent refuses unsafe characters in rendered WireGuard configs (defence against a compromised control plane), uses `execFile` (no shell), and writes files with 0600 permissions.
 - **Firewall** (`infra/wireguard/nftables-stormvpn.nft`): clients can only reach the node's DNS; client-to-client traffic, private/CGNAT/link-local ranges and outbound SMTP (25) are dropped; the resolver and agent metrics are never exposed on the WAN.
-- **systemd hardening**: `NoNewPrivileges`, `ProtectSystem=strict`, restricted capabilities and write paths.
+- **systemd hardening**: `ProtectSystem=strict`, restricted capabilities and write paths (`NoNewPrivileges` is off because it blocks `wg-quick` on AppArmor hosts).
 - **Kill switch**: engaging it on a server empties its peer set on the next sync and ends all sessions; the node gets no new users.
 
 ## Abuse prevention
