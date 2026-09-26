@@ -164,12 +164,15 @@ SERVER_NAME="${SERVER_NAME:-${SERVER_COUNTRY^^}-${city_code}-01}"
 log "Creating plans, admin account and VPN server entry"
 node_ip=""
 [[ "${SKIP_NODE:-0}" == "1" ]] || node_ip="$PUBLIC_IP"
-bootstrap_out="$(BOOTSTRAP_ADMIN_EMAIL="$ADMIN_EMAIL" BOOTSTRAP_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
+if ! bootstrap_out="$(BOOTSTRAP_ADMIN_EMAIL="$ADMIN_EMAIL" BOOTSTRAP_ADMIN_PASSWORD="$ADMIN_PASSWORD" \
   BOOTSTRAP_SERVER_IPV4="$node_ip" BOOTSTRAP_SERVER_NAME="$SERVER_NAME" BOOTSTRAP_SERVER_HOSTNAME="$DOMAIN" \
   BOOTSTRAP_SERVER_COUNTRY="$SERVER_COUNTRY" BOOTSTRAP_SERVER_CITY="$SERVER_CITY" \
   docker compose run --rm -T -e BOOTSTRAP_ADMIN_EMAIL -e BOOTSTRAP_ADMIN_PASSWORD -e BOOTSTRAP_SERVER_IPV4 \
   -e BOOTSTRAP_SERVER_NAME -e BOOTSTRAP_SERVER_HOSTNAME -e BOOTSTRAP_SERVER_COUNTRY -e BOOTSTRAP_SERVER_CITY \
-  migrate pnpm run --silent bootstrap)"
+  migrate pnpm run bootstrap 2>&1)"; then
+  echo "$bootstrap_out"
+  die "bootstrap failed (output above)"
+fi
 grep -v '^ENROLLMENT_TOKEN=' <<<"$bootstrap_out" || true
 ENROLLMENT_TOKEN="$(sed -n 's/^ENROLLMENT_TOKEN=//p' <<<"$bootstrap_out")"
 
