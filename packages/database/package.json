@@ -24,6 +24,7 @@
     "lint": "eslint src",
     "test": "vitest run",
     "seed": "tsx src/seed/index.ts",
+    "bootstrap": "tsx src/seed/bootstrap.ts",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "clean": "rm -rf dist generated .turbo"

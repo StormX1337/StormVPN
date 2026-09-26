@@ -37,6 +37,12 @@ table inet stormvpn {
     iifname "@WG_IF@" ip6 daddr { fc00::/7, fe80::/10, ff00::/8 } drop
     iifname "@WG_IF@" tcp dport 25 drop comment "anti-spam: no direct SMTP"
     iifname "@WG_IF@" oifname "@WAN_IF@" accept
+    # Docker bridges on hosts that also run the platform (install.sh). VPN clients never reach
+    # containers: their private addresses are in blocked_v4.
+    iifname "docker0" oifname != "@WG_IF@" accept
+    iifname "br-*" oifname != "@WG_IF@" accept
+    oifname "docker0" iifname != "@WG_IF@" accept
+    oifname "br-*" iifname != "@WG_IF@" accept
   }
 
   chain postrouting {

@@ -30,6 +30,15 @@ die() { printf '\033[1;31mERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 . /etc/os-release
 [[ "$ID" == "ubuntu" || "$ID" == "debian" ]] || die "unsupported distribution: $ID"
 
+# Unbound listens on port 53 – free it from the systemd-resolved stub listener first.
+if systemctl is-active --quiet systemd-resolved; then
+  log "Disabling the systemd-resolved stub listener (port 53)"
+  install -d /etc/systemd/resolved.conf.d
+  printf '[Resolve]\nDNSStubListener=no\n' > /etc/systemd/resolved.conf.d/stormvpn.conf
+  ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
+  systemctl restart systemd-resolved
+fi
+
 log "Installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
@@ -51,8 +60,40 @@ sed -e "s/@WAN_IF@/${WAN_INTERFACE}/g" -e "s/@WG_IF@/${WG_INTERFACE}/g" -e "s/@W
   "$SCRIPT_DIR/nftables-stormvpn.nft" > /etc/nftables.d/stormvpn.nft
 grep -q 'include "/etc/nftables.d/\*.nft"' /etc/nftables.conf || echo 'include "/etc/nftables.d/*.nft"' >> /etc/nftables.conf
 nft -c -f /etc/nftables.conf
-systemctl enable --now nftables >/dev/null
-systemctl reload nftables || systemctl restart nftables
+# Load only our table: reloading nftables.conf ("flush ruleset") would drop Docker's rules.
+nft -f /etc/nftables.d/stormvpn.nft
+systemctl enable nftables >/dev/null
+
+if command -v docker >/dev/null; then
+  # Docker sets the iptables FORWARD policy to DROP – allow tunnel traffic via DOCKER-USER.
+  log "Allowing WireGuard forwarding next to Docker"
+  cat > /usr/local/sbin/stormvpn-docker-forward.sh <<SH
+#!/bin/sh
+for ipt in iptables ip6tables; do
+  \$ipt -C DOCKER-USER -i ${WG_INTERFACE} -j ACCEPT 2>/dev/null || \$ipt -I DOCKER-USER -i ${WG_INTERFACE} -j ACCEPT 2>/dev/null
+  \$ipt -C DOCKER-USER -o ${WG_INTERFACE} -j ACCEPT 2>/dev/null || \$ipt -I DOCKER-USER -o ${WG_INTERFACE} -j ACCEPT 2>/dev/null
+done
+exit 0
+SH
+  chmod 0755 /usr/local/sbin/stormvpn-docker-forward.sh
+  cat > /etc/systemd/system/stormvpn-docker-forward.service <<UNIT
+[Unit]
+Description=StormVPN: allow WireGuard forwarding with Docker
+After=docker.service
+PartOf=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/stormvpn-docker-forward.sh
+
+[Install]
+WantedBy=docker.service
+UNIT
+  systemctl daemon-reload
+  systemctl enable stormvpn-docker-forward >/dev/null
+  systemctl restart stormvpn-docker-forward
+fi
 
 log "DNS resolver (Unbound, no query logs)"
 install -m 0644 "$SCRIPT_DIR/unbound-stormvpn.conf" /etc/unbound/unbound.conf.d/stormvpn.conf

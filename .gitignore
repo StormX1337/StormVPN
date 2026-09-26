@@ -31,3 +31,5 @@ logs/
 .vscode/*
 !.vscode/extensions.json
 .demo-nodes.json
+docker-compose.override.yml
+deploy/

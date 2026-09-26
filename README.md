@@ -48,6 +48,16 @@ docs/            Architecture, security, deployment, API, node setup, WireGuard,
 scripts/         Agent packaging, demo fleet simulator
 ```
 
+## One-command install (single VPS)
+
+Platform + first WireGuard node on one fresh Ubuntu 22.04/24.04 or Debian 12 server (≥ 2 GB RAM, public IPv4, open ports TCP 80/443 and UDP 51820):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/StormX1337/StormVPN/claude/vibrant-clarke-kuqenv/install.sh | sudo bash
+```
+
+Installs Docker, generates secrets, gets a Let's Encrypt certificate (own domain via `DOMAIN=vpn.example.com`, otherwise `<ip>.sslip.io`), builds and starts all services, creates the plans and the admin account and registers this host as a VPN node. Credentials end up in `/root/stormvpn-credentials.txt`. Options (SMTP, Stripe, `SKIP_NODE=1`, …) are listed at the top of [`install.sh`](install.sh); re-running it updates the installation.
+
 ## Quick start (development)
 
 Requirements: Node.js ≥ 22.18, pnpm 10, Docker (for PostgreSQL/Redis) – or local PostgreSQL 16 + Redis 7.

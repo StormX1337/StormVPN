@@ -77,6 +77,16 @@ docker compose --profile monitoring up -d        # Prometheus :9090, Grafana :30
 
 Open http://localhost:8080 (admin under `/admin`, mail UI http://localhost:8025). The `migrate` service runs `prisma migrate deploy` before API/worker/scheduler start.
 
+## One-command install (single VPS)
+
+Platform + first WireGuard node on one fresh Ubuntu 22.04/24.04 or Debian 12 server (≥ 2 GB RAM, public IPv4, open ports TCP 80/443 and UDP 51820):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/StormX1337/StormVPN/claude/vibrant-clarke-kuqenv/install.sh | sudo bash
+```
+
+Installs Docker, generates secrets, gets a Let's Encrypt certificate (own domain via `DOMAIN=vpn.example.com`, otherwise `<ip>.sslip.io`), builds and starts all services, creates the plans and the admin account and registers this host as a VPN node. Credentials end up in `/root/stormvpn-credentials.txt`. Options (SMTP, Stripe, `SKIP_NODE=1`, …) are listed at the top of [`install.sh`](install.sh); re-running it updates the installation.
+
 ## 12. Production deployment (Ubuntu 24.04 / Debian 12)
 
 ### Reference topology
