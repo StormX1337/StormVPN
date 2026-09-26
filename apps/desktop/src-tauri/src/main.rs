@@ -26,6 +26,11 @@ fn tunnel_state() -> TunnelState {
 }
 
 #[tauri::command]
+fn tunnel_stats() -> Option<tunnel::TunnelStats> {
+    tunnel::stats()
+}
+
+#[tauri::command]
 fn secret_get(key: String) -> Result<Option<String>, String> {
     secrets::get(&key)
 }
@@ -70,6 +75,7 @@ fn main() {
             tunnel_connect,
             tunnel_disconnect,
             tunnel_state,
+            tunnel_stats,
             secret_get,
             secret_set,
             secret_delete,

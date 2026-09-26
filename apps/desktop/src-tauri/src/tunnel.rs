@@ -18,6 +18,18 @@ pub enum TunnelState {
     Disconnecting,
 }
 
+/// Live counters of the tunnel peer, read from the WireGuard adapter.
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TunnelStats {
+    /// Bytes received from the server (download).
+    pub rx_bytes: u64,
+    /// Bytes sent to the server (upload).
+    pub tx_bytes: u64,
+    /// Unix time of the last handshake in milliseconds (0 = none yet).
+    pub last_handshake_ms: u64,
+}
+
 #[cfg(windows)]
 mod imp {
     use super::{TunnelState, TUNNEL_NAME};
@@ -102,7 +114,9 @@ mod imp {
                         _ => break,
                     }
                 }
-                service.delete().map_err(|e| err("delete tunnel service", e))?;
+                service
+                    .delete()
+                    .map_err(|e| err("delete tunnel service", e))?;
             }
             Err(e) if not_found(&e) => {}
             Err(e) => return Err(err("open tunnel service", e)),
@@ -168,6 +182,69 @@ mod imp {
         }
     }
 
+    /// Reads the peer counters via wireguard.dll (`WireGuardGetConfiguration`).
+    pub fn stats() -> Option<super::TunnelStats> {
+        type Handle = *mut std::ffi::c_void;
+        type OpenAdapter = unsafe extern "system" fn(*const u16) -> Handle;
+        type CloseAdapter = unsafe extern "system" fn(Handle);
+        type GetConfiguration = unsafe extern "system" fn(Handle, *mut u8, *mut u32) -> i32;
+        // Offsets in the ALIGNED(8) structs of wireguard.h: WIREGUARD_INTERFACE is 80 bytes and
+        // is followed by the first WIREGUARD_PEER (TxBytes @104, RxBytes @112, LastHandshake @120).
+        const INTERFACE_SIZE: usize = 80;
+        const PEERS_COUNT: usize = 72;
+        const PEER_TX: usize = INTERFACE_SIZE + 104;
+        const PEER_RX: usize = INTERFACE_SIZE + 112;
+        const PEER_HANDSHAKE: usize = INTERFACE_SIZE + 120;
+        // 100ns intervals between 1601-01-01 and 1970-01-01.
+        const EPOCH_DIFF: u64 = 116_444_736_000_000_000;
+
+        let dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+        // SAFETY: wireguard.dll ships next to this binary; signatures follow wireguard.h and the
+        // buffer is sized by the driver (ERROR_MORE_DATA protocol).
+        unsafe {
+            let library = libloading::Library::new(dir.join("wireguard.dll")).ok()?;
+            let open = library.get::<OpenAdapter>(b"WireGuardOpenAdapter\0").ok()?;
+            let close = library
+                .get::<CloseAdapter>(b"WireGuardCloseAdapter\0")
+                .ok()?;
+            let get = library
+                .get::<GetConfiguration>(b"WireGuardGetConfiguration\0")
+                .ok()?;
+            let name: Vec<u16> = TUNNEL_NAME
+                .encode_utf16()
+                .chain(std::iter::once(0))
+                .collect();
+            let adapter = open(name.as_ptr());
+            if adapter.is_null() {
+                return None;
+            }
+            let mut buffer = vec![0u8; 4096];
+            let mut bytes = buffer.len() as u32;
+            let mut ok = get(adapter, buffer.as_mut_ptr(), &mut bytes) != 0;
+            if !ok && bytes as usize > buffer.len() {
+                buffer = vec![0u8; bytes as usize];
+                ok = get(adapter, buffer.as_mut_ptr(), &mut bytes) != 0;
+            }
+            close(adapter);
+            if !ok || (bytes as usize) < PEER_HANDSHAKE + 8 {
+                return None;
+            }
+            let u32_at =
+                |offset: usize| u32::from_le_bytes(buffer[offset..offset + 4].try_into().unwrap());
+            let u64_at =
+                |offset: usize| u64::from_le_bytes(buffer[offset..offset + 8].try_into().unwrap());
+            if u32_at(PEERS_COUNT) == 0 {
+                return None;
+            }
+            let handshake = u64_at(PEER_HANDSHAKE);
+            Some(super::TunnelStats {
+                rx_bytes: u64_at(PEER_RX),
+                tx_bytes: u64_at(PEER_TX),
+                last_handshake_ms: handshake.saturating_sub(EPOCH_DIFF) / 10_000,
+            })
+        }
+    }
+
     /// Entry point when Windows starts this binary as the tunnel service.
     pub fn run_service(config_file: &Path) -> bool {
         let Ok(exe) = std::env::current_exe() else {
@@ -182,9 +259,9 @@ mod imp {
             let Ok(library) = libloading::Library::new(dir.join("tunnel.dll")) else {
                 return false;
             };
-            let Ok(run) = library.get::<unsafe extern "C" fn(*const u16) -> u8>(
-                b"WireGuardTunnelService\0",
-            ) else {
+            let Ok(run) =
+                library.get::<unsafe extern "C" fn(*const u16) -> u8>(b"WireGuardTunnelService\0")
+            else {
                 return false;
             };
             let wide: Vec<u16> = config_file
@@ -212,6 +289,10 @@ mod imp {
 
     pub fn state() -> TunnelState {
         TunnelState::Disconnected
+    }
+
+    pub fn stats() -> Option<super::TunnelStats> {
+        None
     }
 }
 

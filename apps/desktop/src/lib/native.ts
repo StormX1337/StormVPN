@@ -2,6 +2,14 @@ import { invoke, isTauri } from '@tauri-apps/api/core';
 
 export type TunnelState = 'disconnected' | 'connecting' | 'connected' | 'disconnecting';
 
+export interface TunnelStats {
+  /** Download (bytes received from the server). */
+  rxBytes: number;
+  /** Upload (bytes sent to the server). */
+  txBytes: number;
+  lastHandshakeMs: number;
+}
+
 /** Bridge to the Rust side (tunnel service, Credential Manager). Browser dev mode uses stubs. */
 export const native = {
   available: isTauri(),
@@ -9,6 +17,7 @@ export const native = {
   disconnect: () => (isTauri() ? invoke<void>('tunnel_disconnect') : Promise.resolve()),
   state: () =>
     isTauri() ? invoke<TunnelState>('tunnel_state') : Promise.resolve<TunnelState>('disconnected'),
+  stats: () => (isTauri() ? invoke<TunnelStats | null>('tunnel_stats') : Promise.resolve(null)),
   deviceName: () => (isTauri() ? invoke<string>('device_name') : Promise.resolve('Browser')),
   secretGet: (key: string) =>
     isTauri()

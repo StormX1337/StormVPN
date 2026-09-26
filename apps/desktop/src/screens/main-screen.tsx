@@ -12,6 +12,7 @@ import {
   Logo,
   Spinner,
   cn,
+  formatBitrate,
   formatBytes,
   formatDuration,
   toast,
@@ -20,7 +21,7 @@ import { ArrowDown, ArrowUp, Globe, Lock, LogOut, Menu, Moon, Power, Sun, Zap } 
 import { useTheme } from 'next-themes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { type Api, clearSession, errorMessage } from '../lib/api';
-import { native, type TunnelState } from '../lib/native';
+import { native, type TunnelState, type TunnelStats } from '../lib/native';
 import { openExternal } from '../lib/open';
 import { settings } from '../lib/settings';
 
@@ -34,6 +35,47 @@ function useNow(active: boolean): number {
     return () => clearInterval(timer);
   }, [active]);
   return now;
+}
+
+interface LiveStats {
+  rxBytes: number;
+  txBytes: number;
+  rxRate: number;
+  txRate: number;
+  since: number;
+}
+
+/** Polls the local WireGuard adapter every second and derives transfer rates. */
+function useLiveStats(active: boolean): LiveStats | null {
+  const [stats, setStats] = useState<LiveStats | null>(null);
+  useEffect(() => {
+    if (!active) {
+      setStats(null);
+      return;
+    }
+    let previous: { sample: TunnelStats; at: number } | null = null;
+    const since = Date.now();
+    const poll = async () => {
+      const sample = await native.stats().catch(() => null);
+      if (!sample) return;
+      const at = Date.now();
+      const seconds = previous ? (at - previous.at) / 1000 : 0;
+      const rate = (current: number, last: number | undefined) =>
+        seconds > 0 && last !== undefined ? Math.max(0, current - last) / seconds : 0;
+      setStats({
+        rxBytes: sample.rxBytes,
+        txBytes: sample.txBytes,
+        rxRate: rate(sample.rxBytes, previous?.sample.rxBytes),
+        txRate: rate(sample.txBytes, previous?.sample.txBytes),
+        since,
+      });
+      previous = { sample, at };
+    };
+    void poll();
+    const timer = setInterval(() => void poll(), 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  return stats;
 }
 
 export function MainScreen({
@@ -88,6 +130,12 @@ export function MainScreen({
       clearInterval(slow);
     };
   }, [api, refreshStatus, refreshTunnel]);
+
+  // Public IP changes once traffic flows through (or leaves) the tunnel.
+  useEffect(() => {
+    const timer = setTimeout(() => void refreshStatus(), 1500);
+    return () => clearTimeout(timer);
+  }, [tunnel, refreshStatus]);
 
   const ensureDevice = useCallback(async (): Promise<string> => {
     const devices = await api.devices.list();
@@ -170,7 +218,9 @@ export function MainScreen({
   const connected = tunnel === 'connected';
   const working = busy !== null || tunnel === 'connecting' || tunnel === 'disconnecting';
   const now = useNow(connected);
+  const live = useLiveStats(connected);
   const since = connection?.connectedAt ?? connection?.startedAt ?? null;
+  const sessionStart = since ? new Date(since).getTime() : (live?.since ?? null);
   const currentServer = connection?.server ?? null;
   const selectedServer = servers.find((server) => server.id === selected) ?? null;
 
@@ -271,7 +321,10 @@ export function MainScreen({
               <ArrowDown className="size-3" /> Down
             </div>
             <div className="tabular mt-0.5 font-medium">
-              {connected ? formatBytes(connection?.txBytes ?? 0) : '—'}
+              {live ? formatBitrate(live.rxRate) : '—'}
+            </div>
+            <div className="text-muted-foreground tabular">
+              {live ? formatBytes(live.rxBytes) : ''}
             </div>
           </div>
           <div className="bg-card rounded-lg border p-2">
@@ -279,13 +332,16 @@ export function MainScreen({
               <ArrowUp className="size-3" /> Up
             </div>
             <div className="tabular mt-0.5 font-medium">
-              {connected ? formatBytes(connection?.rxBytes ?? 0) : '—'}
+              {live ? formatBitrate(live.txRate) : '—'}
+            </div>
+            <div className="text-muted-foreground tabular">
+              {live ? formatBytes(live.txBytes) : ''}
             </div>
           </div>
         </div>
-        {connected && since ? (
+        {connected && sessionStart ? (
           <div className="text-muted-foreground tabular text-xs">
-            Session {formatDuration((now - new Date(since).getTime()) / 1000)}
+            Session {formatDuration(Math.max(0, now - sessionStart) / 1000)}
           </div>
         ) : null}
       </section>
