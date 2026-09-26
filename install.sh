@@ -131,8 +131,8 @@ if [[ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]]; then
   le_contact=(--register-unsafely-without-email)
   [[ -n "${LE_EMAIL:-}" ]] && le_contact=(-m "$LE_EMAIL")
   certbot certonly --standalone --non-interactive --agree-tos "${le_contact[@]}" -d "$DOMAIN" \
-    --pre-hook "cd $INSTALL_DIR && docker compose stop nginx || true" \
-    --post-hook "cd $INSTALL_DIR && docker compose start nginx || true" \
+    --pre-hook "sh -c 'cd $INSTALL_DIR && docker compose stop nginx || true'" \
+    --post-hook "sh -c 'cd $INSTALL_DIR && docker compose start nginx || true'" \
     || die "certificate request failed – is port 80 open and does $DOMAIN point to $PUBLIC_IP?"
 fi
 
