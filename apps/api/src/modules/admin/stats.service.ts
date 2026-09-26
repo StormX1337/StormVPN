@@ -15,6 +15,7 @@ export class AdminStatsService {
     private readonly redis: Redis,
     private readonly settings: SettingsService,
     private readonly clock: Clock,
+    private readonly offlineAfterSeconds: number,
   ) {}
 
   async overview(): Promise<AdminStatsDto> {
@@ -22,9 +23,11 @@ export class AdminStatsService {
     if (cached) return JSON.parse(cached) as AdminStatsDto;
 
     const now = this.clock.now();
-    const [nodes, activeUsers, totalUsers, activeConnections, traffic, requests, errors, activeSubscriptions, settings] =
+    const freshSince = new Date(now.getTime() - this.offlineAfterSeconds * 1000);
+    const [nodes, totalNodes, activeUsers, totalUsers, activeConnections, traffic, requests, errors, activeSubscriptions, settings] =
       await Promise.all([
-        this.db.vPNNode.groupBy({ by: ['status'], _count: { _all: true } }),
+        this.db.vPNNode.groupBy({ by: ['status'], where: { lastHeartbeatAt: { gte: freshSince } }, _count: { _all: true } }),
+        this.db.vPNNode.count(),
         this.db.vPNConnection.findMany({ where: { status: 'CONNECTED' }, distinct: ['userId'], select: { userId: true } }),
         this.db.user.count({ where: { deletedAt: null } }),
         this.db.vPNConnection.count({ where: { status: 'CONNECTED' } }),
@@ -37,7 +40,7 @@ export class AdminStatsService {
     const countOf = (status: string) => nodes.find((group) => group.status === status)?._count._all ?? 0;
     const stats: AdminStatsDto = {
       onlineNodes: countOf('ONLINE'),
-      totalNodes: nodes.reduce((sum, group) => sum + group._count._all, 0),
+      totalNodes,
       degradedNodes: countOf('DEGRADED'),
       activeUsers: activeUsers.length,
       totalUsers,

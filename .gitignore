@@ -30,3 +30,4 @@ logs/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+.demo-nodes.json

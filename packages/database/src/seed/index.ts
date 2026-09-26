@@ -1,8 +1,10 @@
+import { writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { config as loadDotenv } from 'dotenv';
 import { createPrismaClient } from '../client';
 import { seedPlans } from './plans';
 import { seedServers } from './servers';
+import { seedTraffic } from './traffic';
 import { seedUsers } from './users';
 
 loadDotenv({ path: fileURLToPath(new URL('../../../../.env', import.meta.url)), quiet: true });
@@ -25,12 +27,19 @@ async function main(): Promise<void> {
 
     const servers = await seedServers(prisma);
     console.log(`✔ servers: ${servers.servers.length}`);
-    console.log(`✔ demo node attached to ${servers.demoNode.serverName}`);
+    console.log(`✔ demo nodes: ${servers.demoNodes.length} (simulated – run \`pnpm demo:fleet\` to keep them alive)`);
+    await seedTraffic(prisma, [users.user.id, users.admin.id], servers.servers);
+    console.log('✔ 30 days of demo traffic');
+    // Demo node tokens for scripts/simulate-fleet.ts (gitignored, development only).
+    await writeFile(
+      fileURLToPath(new URL('../../.demo-nodes.json', import.meta.url)),
+      `${JSON.stringify(servers.demoNodes, null, 2)}\n`,
+      { mode: 0o600 },
+    );
     console.log('');
     console.log('Development credentials (never use in production):');
     console.log(`  admin login     ${users.admin.email} / ${users.admin.password}`);
     console.log(`  user login      ${users.user.email} / ${users.user.password}`);
-    console.log(`  demo node token ${servers.demoNode.nodeToken}`);
     console.log(`  enrollment token for ${servers.enrollment.serverName}: ${servers.enrollment.token}`);
   } finally {
     await prisma.$disconnect();

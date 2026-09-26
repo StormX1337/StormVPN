@@ -15,7 +15,7 @@ export const DEMO_PLANS = [
     allowedCountries: ['DE', 'NL'],
     serverClasses: ['STANDARD' as const],
     priority: 0,
-    features: ['1 device', '10 GB / month', '2 locations', 'WireGuard®'],
+    features: ['WireGuard® encryption', 'No activity logs'],
     sortOrder: 0,
   },
   {
@@ -30,7 +30,7 @@ export const DEMO_PLANS = [
     allowedCountries: [],
     serverClasses: ['STANDARD' as const],
     priority: 10,
-    features: ['3 devices', 'Unlimited traffic', 'All standard locations', 'Kill switch & DNS leak protection'],
+    features: ['Kill switch & DNS leak protection', 'All standard locations'],
     sortOrder: 10,
   },
   {
@@ -45,7 +45,7 @@ export const DEMO_PLANS = [
     allowedCountries: [],
     serverClasses: ['STANDARD' as const, 'PREMIUM' as const],
     priority: 50,
-    features: ['6 devices', 'Premium servers', 'Priority load balancing', 'Email support'],
+    features: ['Premium servers', 'Priority load balancing', 'Email support'],
     sortOrder: 20,
   },
   {
@@ -60,7 +60,7 @@ export const DEMO_PLANS = [
     allowedCountries: [],
     serverClasses: ['STANDARD' as const, 'PREMIUM' as const, 'STREAMING' as const],
     priority: 100,
-    features: ['10 devices', 'Streaming optimised servers', 'Highest priority', 'Priority support'],
+    features: ['Streaming optimised servers', 'Highest priority', 'Priority support'],
     sortOrder: 30,
   },
 ];

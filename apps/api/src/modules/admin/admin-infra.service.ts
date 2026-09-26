@@ -32,7 +32,7 @@ export class AdminInfraService {
     private readonly db: Database,
     private readonly catalog: ServerCatalog,
     private readonly connections: ConnectionService,
-    private readonly env: Pick<ApiEnv, 'NODE_ENROLLMENT_TTL_HOURS' | 'APP_URL'>,
+    private readonly env: Pick<ApiEnv, 'NODE_ENROLLMENT_TTL_HOURS' | 'APP_URL' | 'NODE_OFFLINE_AFTER_SECONDS'>,
     private readonly clock: Clock,
   ) {}
 
@@ -186,7 +186,15 @@ export class AdminInfraService {
       include: { server: { select: { name: true, peerRevision: true } } },
       orderBy: { server: { name: 'asc' } },
     });
-    return nodes.map((node) => toAdminNodeDto(node, node.server));
+    return nodes.map((node) => this.withEffectiveStatus(toAdminNodeDto(node, node.server)));
+  }
+
+  /** A node whose heartbeats stopped is reported OFFLINE immediately (the worker persists it). */
+  private withEffectiveStatus(dto: AdminNodeDto): AdminNodeDto {
+    const stale =
+      !dto.lastHeartbeatAt ||
+      this.clock.now().getTime() - new Date(dto.lastHeartbeatAt).getTime() > this.env.NODE_OFFLINE_AFTER_SECONDS * 1000;
+    return stale && dto.status !== 'MAINTENANCE' ? { ...dto, status: 'OFFLINE' } : dto;
   }
 
   async nodeDetail(id: string) {
@@ -201,7 +209,7 @@ export class AdminInfraService {
       take: 1440,
     });
     return {
-      node: toAdminNodeDto(node, node.server),
+      node: this.withEffectiveStatus(toAdminNodeDto(node, node.server)),
       history: history.map((sample) => ({
         at: sample.createdAt.toISOString(),
         cpuPercent: sample.cpuPercent,

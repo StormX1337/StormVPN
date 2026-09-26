@@ -61,39 +61,40 @@ export async function seedServers(prisma: PrismaClient) {
     );
   }
 
-  // Demo node (simulated metrics) for DE-FRA-02 so dashboards have live data.
-  const demoServer = servers.find((server) => server.name === 'DE-FRA-02')!;
-  const nodeToken = generatePrefixedToken('snt');
+  // Demo nodes with simulated metrics for every server except DE-FRA-01 (kept for a real agent).
   const now = new Date();
-  const nodeData = {
-    tokenHash: sha256Hex(nodeToken),
-    tokenPrefix: nodeToken.slice(0, 12),
-    status: 'ONLINE' as const,
-    agentVersion: '1.0.0',
-    hostname: demoServer.hostname,
-    os: 'Ubuntu 24.04 LTS',
-    kernel: '6.8.0-45-generic',
-    wireguardPublicKey: generateWireGuardKeyPair().publicKey,
-    publicIpv4: demoServer.publicIpv4,
-    cpuPercent: 23.5,
-    memoryPercent: 41.2,
-    memoryTotalBytes: BigInt(8 * 1024 ** 3),
-    diskPercent: 18.4,
-    rxBps: BigInt(12_500_000),
-    txBps: BigInt(48_200_000),
-    loadPercent: 31,
-    activeConnections: 0,
-    activePeers: 0,
-    uptimeSeconds: BigInt(86_400 * 12),
-    appliedPeerRevision: demoServer.peerRevision,
-    healthChecks: { wireguard: { ok: true }, ipForward: { ok: true }, nat: { ok: true } },
-    lastHeartbeatAt: now,
-  };
-  await prisma.vPNNode.upsert({
-    where: { serverId: demoServer.id },
-    create: { serverId: demoServer.id, ...nodeData },
-    update: nodeData,
-  });
+  const demoNodes: { serverName: string; nodeToken: string }[] = [];
+  for (const [index, server] of servers.entries()) {
+    if (server.name === 'DE-FRA-01') continue;
+    const nodeToken = generatePrefixedToken('snt');
+    const load = [31, 45, 22, 58, 37, 18, 64, 27][index % 8]!;
+    const nodeData = {
+      tokenHash: sha256Hex(nodeToken),
+      tokenPrefix: nodeToken.slice(0, 12),
+      status: 'ONLINE' as const,
+      agentVersion: '1.0.0',
+      hostname: server.hostname,
+      os: 'Ubuntu 24.04 LTS',
+      kernel: '6.8.0-45-generic',
+      wireguardPublicKey: generateWireGuardKeyPair().publicKey,
+      publicIpv4: server.publicIpv4,
+      cpuPercent: load * 0.7,
+      memoryPercent: 30 + (index * 7) % 40,
+      memoryTotalBytes: BigInt(8 * 1024 ** 3),
+      diskPercent: 12 + index * 3,
+      rxBps: BigInt(load * 400_000),
+      txBps: BigInt(load * 1_600_000),
+      loadPercent: load,
+      activeConnections: Math.round((load / 100) * server.capacity * 0.8),
+      activePeers: Math.round((load / 100) * server.capacity),
+      uptimeSeconds: BigInt(86_400 * (5 + index)),
+      appliedPeerRevision: server.peerRevision,
+      healthChecks: { wireguard: { ok: true }, ipForward: { ok: true }, nat: { ok: true } },
+      lastHeartbeatAt: now,
+    };
+    await prisma.vPNNode.upsert({ where: { serverId: server.id }, create: { serverId: server.id, ...nodeData }, update: nodeData });
+    demoNodes.push({ serverName: server.name, nodeToken });
+  }
 
   // Enrollment token for DE-FRA-01 so a real agent can be registered in development.
   const enrollServer = servers.find((server) => server.name === 'DE-FRA-01')!;
@@ -108,7 +109,7 @@ export async function seedServers(prisma: PrismaClient) {
 
   return {
     servers,
-    demoNode: { serverName: demoServer.name, nodeToken },
+    demoNodes,
     enrollment: { serverName: enrollServer.name, token: enrollmentToken },
   };
 }

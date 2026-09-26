@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+@import '@stormvpn/ui/styles.css';
+
+@source '../../../../packages/ui/src';
+
+.hero-glow {
+  background:
+    radial-gradient(60rem 30rem at 10% -10%, rgb(56 189 248 / 0.14), transparent 60%),
+    radial-gradient(50rem 26rem at 90% 0%, rgb(99 102 241 / 0.16), transparent 60%);
+}
+
+.grid-fade {
+  background-image: linear-gradient(to right, rgb(148 163 184 / 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(148 163 184 / 0.07) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
+}

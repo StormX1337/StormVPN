@@ -2,6 +2,8 @@
 export const COOKIE_ACCESS_TOKEN = 'svpn_at';
 export const COOKIE_REFRESH_TOKEN = 'svpn_rt';
 export const COOKIE_CSRF_TOKEN = 'svpn_csrf';
+/** Non-sensitive flag (no token) readable by page routes to decide on login redirects. */
+export const COOKIE_SESSION_HINT = 'svpn_session';
 export const HEADER_CSRF_TOKEN = 'x-csrf-token';
 /** Native clients set this header to receive tokens in the response body instead of cookies. */
 export const HEADER_CLIENT_TYPE = 'x-stormvpn-client';

@@ -89,7 +89,7 @@ export function createServices(deps: AppDeps) {
 
   const telemetry = new TelemetryService(db, events, clock);
   const agent = new AgentService(db, redis, peers, telemetry, catalog, events, env, clock);
-  const adminStats = new AdminStatsService(db, redis, settings, clock);
+  const adminStats = new AdminStatsService(db, redis, settings, clock, env.NODE_OFFLINE_AFTER_SECONDS);
 
   return {
     settings,

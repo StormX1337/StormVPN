@@ -2,7 +2,7 @@
   "name": "stormvpn",
   "version": "1.0.0",
   "private": true,
-  "description": "StormVPN – self-hosted WireGuard VPN SaaS platform",
+  "description": "StormVPN \u2013 self-hosted WireGuard VPN SaaS platform",
   "packageManager": "pnpm@10.33.0",
   "engines": {
     "node": ">=22.18.0"
@@ -24,7 +24,8 @@
     "db:seed": "pnpm --filter @stormvpn/database seed",
     "db:studio": "pnpm --filter @stormvpn/database prisma studio",
     "prisma": "pnpm --filter @stormvpn/database prisma",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "demo:fleet": "tsx scripts/simulate-fleet.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

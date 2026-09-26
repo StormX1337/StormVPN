@@ -1,5 +1,5 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { COOKIE_ACCESS_TOKEN, COOKIE_CSRF_TOKEN, COOKIE_REFRESH_TOKEN } from '@stormvpn/config';
+import { COOKIE_ACCESS_TOKEN, COOKIE_CSRF_TOKEN, COOKIE_REFRESH_TOKEN, COOKIE_SESSION_HINT } from '@stormvpn/config';
 import { generateToken } from '@stormvpn/crypto/node';
 import type { AuthResultDto } from '@stormvpn/types';
 import type { ApiEnv } from '../../env';
@@ -61,6 +61,13 @@ export function respondWithSession(
     path: REFRESH_COOKIE_PATH,
     expires: issued.refreshTokenExpiresAt,
   });
+  void reply.setCookie(COOKIE_SESSION_HINT, '1', {
+    ...baseCookie(env),
+    httpOnly: false,
+    sameSite: 'lax',
+    path: '/',
+    expires: issued.refreshTokenExpiresAt,
+  });
   ensureCsrfCookie(request, reply, env);
   return { user };
 }
@@ -68,4 +75,5 @@ export function respondWithSession(
 export function clearSessionCookies(reply: FastifyReply, env: ApiEnv): void {
   void reply.clearCookie(COOKIE_ACCESS_TOKEN, { ...baseCookie(env), path: '/' });
   void reply.clearCookie(COOKIE_REFRESH_TOKEN, { ...baseCookie(env), path: REFRESH_COOKIE_PATH });
+  void reply.clearCookie(COOKIE_SESSION_HINT, { ...baseCookie(env), httpOnly: false, path: '/' });
 }
