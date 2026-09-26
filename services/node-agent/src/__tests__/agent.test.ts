@@ -204,3 +204,13 @@ describe('NodeAgent', () => {
     ).toBe(true);
   });
 });
+
+describe('loadAgentConfig', () => {
+  it('treats a cleared enrollment token as absent', () => {
+    const config = loadAgentConfig({
+      STORMVPN_API_URL: 'https://api.stormvpn.test',
+      STORMVPN_ENROLLMENT_TOKEN: '',
+    });
+    expect(config.STORMVPN_ENROLLMENT_TOKEN).toBeUndefined();
+  });
+});

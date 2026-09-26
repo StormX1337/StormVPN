@@ -142,7 +142,7 @@ if [[ ! -f /var/lib/stormvpn-agent/credentials.json ]]; then
   set -a; . /etc/stormvpn-agent/agent.env; set +a
   node "$AGENT_HOME/stormvpn-agent.mjs" register
   # The enrollment token is single-use – remove it from disk.
-  sed -i 's/^STORMVPN_ENROLLMENT_TOKEN=.*/STORMVPN_ENROLLMENT_TOKEN=/' /etc/stormvpn-agent/agent.env
+  sed -i '/^STORMVPN_ENROLLMENT_TOKEN=/d' /etc/stormvpn-agent/agent.env
 fi
 
 systemctl enable --now stormvpn-agent >/dev/null

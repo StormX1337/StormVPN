@@ -8,7 +8,11 @@ export const agentEnvSchema = z
       .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
       .default('info'),
     STORMVPN_API_URL: z.string().url(),
-    STORMVPN_ENROLLMENT_TOKEN: z.string().min(20).optional(),
+    // Blank after registration (install-node.sh clears the single-use token).
+    STORMVPN_ENROLLMENT_TOKEN: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(20).optional(),
+    ),
     STORMVPN_STATE_DIR: z.string().default('/var/lib/stormvpn-agent'),
     WG_INTERFACE: z
       .string()
