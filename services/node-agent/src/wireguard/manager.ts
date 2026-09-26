@@ -58,10 +58,12 @@ export class WgToolsManager implements WireGuardManager {
   async apply(config: AgentConfigResponse): Promise<void> {
     const { privateKey } = await this.state.serverKeys();
     await this.ensureInterface(config, privateKey);
-    const file = await this.state.writeTemp(
-      'wg-sync.conf',
-      renderSyncConfig(privateKey, config.interface.listenPort, config.peers),
-    );
+    // Next to wg0.conf: AppArmor profiles for `wg` (e.g. Ubuntu 25.04+) only allow reading
+    // configs from the WireGuard directory, not from the agent state directory.
+    const file = join(this.configDir, `.${this.iface}-sync.conf`);
+    await writeFile(file, renderSyncConfig(privateKey, config.interface.listenPort, config.peers), {
+      mode: 0o600,
+    });
     try {
       await this.runner.run('wg', ['syncconf', this.iface, file], { timeoutMs: 60_000 });
     } finally {

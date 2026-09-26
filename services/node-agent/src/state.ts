@@ -66,9 +66,4 @@ export class StateStore {
       return pair;
     }
   }
-
-  async writeTemp(name: string, content: string): Promise<string> {
-    await this.writeSecret(name, content);
-    return this.path(name);
-  }
 }

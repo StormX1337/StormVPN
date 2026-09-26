@@ -119,7 +119,7 @@ describe('WgToolsManager', () => {
     expect(interfaceFile).toContain('Address = 10.80.0.1/20, fd80:1::1/64');
     expect((await stat(join(dir, 'wg0.conf'))).mode & 0o777).toBe(0o600);
     expect((await stat(join(dir, 'state', 'server.key'))).mode & 0o777).toBe(0o600);
-    expect(await readdir(join(dir, 'state'))).not.toContain('wg-sync.conf');
+    expect(await readdir(dir)).not.toContain('.wg0-sync.conf');
 
     // Unchanged interface config: no restart, only a peer sync.
     runner.calls.length = 0;
