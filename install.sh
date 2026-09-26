@@ -16,6 +16,12 @@
 # Safe to re-run (updates code, keeps .env, database and certificates).
 set -euo pipefail
 
+# With `curl … | bash` the script itself arrives on stdin. Wrapping it in a function makes bash
+# read it completely before anything runs; stdin is then detached so commands like
+# `docker compose run` cannot swallow the rest of the script.
+main() {
+exec </dev/null
+
 INSTALL_DIR="${INSTALL_DIR:-/opt/stormvpn}"
 REPO_URL="${REPO_URL:-https://github.com/StormX1337/StormVPN.git}"
 BRANCH="${BRANCH:-claude/vibrant-clarke-kuqenv}"
@@ -209,3 +215,6 @@ Credentials saved in ${CREDENTIALS_FILE} (root only).
 Open ports in your provider firewall: TCP 80, TCP 443, UDP 51820.
 Logs: cd ${INSTALL_DIR} && docker compose logs -f api · journalctl -u stormvpn-agent -f
 INFO
+}
+
+main "$@"
