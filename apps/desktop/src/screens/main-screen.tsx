@@ -93,7 +93,9 @@ export function MainScreen({
     const devices = await api.devices.list();
     const stored = settings.deviceId();
     if (stored && devices.some((device) => device.id === stored)) return stored;
-    const name = `Windows · ${await native.deviceName()}`.slice(0, 64);
+    // Device names allow letters, digits, spaces and . _ ' ( ) - only.
+    const host = (await native.deviceName()).replace(/[^\p{L}\p{N} ._'()-]/gu, '-');
+    const name = `Windows (${host})`.slice(0, 64);
     const device =
       devices.find((item) => item.platform === 'WINDOWS' && item.name === name) ??
       (await api.devices.create({ name, platform: 'WINDOWS', clientVersion: CLIENT_VERSION }));
