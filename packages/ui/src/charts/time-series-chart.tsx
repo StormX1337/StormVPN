@@ -1,6 +1,14 @@
 'use client';
 
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { cn } from '../lib/cn';
 import { type ChartToken, useChartColors } from './use-chart-colors';
 
@@ -43,15 +51,23 @@ function ChartTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="min-w-40 rounded-lg border bg-popover px-3 py-2 text-xs shadow-xl">
-      <div className="mb-1.5 text-muted-foreground">{formatX ? formatX(String(label)) : String(label)}</div>
+    <div className="bg-popover min-w-40 rounded-lg border px-3 py-2 text-xs shadow-xl">
+      <div className="text-muted-foreground mb-1.5">
+        {formatX ? formatX(String(label)) : String(label)}
+      </div>
       <div className="space-y-1">
         {series.map((spec) => {
           const entry = payload.find((item) => item.dataKey === spec.key);
           return (
             <div key={spec.key} className="flex items-center gap-2">
-              <span className="h-0.5 w-3 rounded-full" style={{ background: colors[spec.color] }} aria-hidden />
-              <span className="font-semibold text-foreground tabular">{formatValue(Number(entry?.value ?? 0))}</span>
+              <span
+                className="h-0.5 w-3 rounded-full"
+                style={{ background: colors[spec.color] }}
+                aria-hidden
+              />
+              <span className="text-foreground tabular font-semibold">
+                {formatValue(Number(entry?.value ?? 0))}
+              </span>
               <span className="text-muted-foreground">{spec.label}</span>
             </div>
           );
@@ -81,10 +97,14 @@ export function TimeSeriesChart<T extends Record<string, string | number>>({
   return (
     <figure className={cn('flex flex-col gap-3', className)}>
       {series.length > 1 ? (
-        <figcaption className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <figcaption className="text-muted-foreground flex flex-wrap items-center gap-4 text-xs">
           {series.map((spec) => (
             <span key={spec.key} className="inline-flex items-center gap-1.5">
-              <span className="size-2.5 rounded-[3px]" style={{ background: colors?.[spec.color] }} aria-hidden />
+              <span
+                className="size-2.5 rounded-[3px]"
+                style={{ background: colors?.[spec.color] }}
+                aria-hidden
+              />
               {spec.label}
             </span>
           ))}
@@ -93,7 +113,10 @@ export function TimeSeriesChart<T extends Record<string, string | number>>({
       <div style={{ height }} className="w-full">
         {colors ? (
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data as Record<string, string | number>[]} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <AreaChart
+              data={data as Record<string, string | number>[]}
+              margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+            >
               <CartesianGrid vertical={false} stroke={colors['--chart-grid']} strokeWidth={1} />
               <XAxis
                 dataKey={xKey as string}
@@ -112,7 +135,17 @@ export function TimeSeriesChart<T extends Record<string, string | number>>({
               />
               <Tooltip
                 cursor={{ stroke: colors['--chart-axis'], strokeWidth: 1 }}
-                content={(props) => <ChartTooltip active={props.active} payload={props.payload} label={props.label} series={series} colors={colors} formatValue={formatValue} formatX={formatX} />}
+                content={(props) => (
+                  <ChartTooltip
+                    active={props.active}
+                    payload={props.payload}
+                    label={props.label}
+                    series={series}
+                    colors={colors}
+                    formatValue={formatValue}
+                    formatX={formatX}
+                  />
+                )}
               />
               {series.map((spec) => (
                 <Area
@@ -127,7 +160,12 @@ export function TimeSeriesChart<T extends Record<string, string | number>>({
                   fill={colors[spec.color]}
                   fillOpacity={area ? 0.1 : 0}
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 2, stroke: colors['--chart-surface'], fill: colors[spec.color] }}
+                  activeDot={{
+                    r: 4,
+                    strokeWidth: 2,
+                    stroke: colors['--chart-surface'],
+                    fill: colors[spec.color],
+                  }}
                   isAnimationActive={false}
                 />
               ))}
@@ -135,11 +173,13 @@ export function TimeSeriesChart<T extends Record<string, string | number>>({
           </ResponsiveContainer>
         ) : null}
       </div>
-      <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer select-none hover:text-foreground">View as table{title ? ` – ${title}` : ''}</summary>
+      <details className="text-muted-foreground text-xs">
+        <summary className="hover:text-foreground cursor-pointer select-none">
+          View as table{title ? ` – ${title}` : ''}
+        </summary>
         <div className="mt-2 max-h-56 overflow-auto rounded-lg border">
           <table className="w-full text-left">
-            <thead className="sticky top-0 bg-card">
+            <thead className="bg-card sticky top-0">
               <tr>
                 <th className="px-3 py-1.5 font-medium">Date</th>
                 {series.map((spec) => (
@@ -152,9 +192,11 @@ export function TimeSeriesChart<T extends Record<string, string | number>>({
             <tbody className="tabular">
               {data.map((row) => (
                 <tr key={String(row[xKey])} className="border-t">
-                  <td className="px-3 py-1">{formatX ? formatX(String(row[xKey])) : String(row[xKey])}</td>
+                  <td className="px-3 py-1">
+                    {formatX ? formatX(String(row[xKey])) : String(row[xKey])}
+                  </td>
                   {series.map((spec) => (
-                    <td key={spec.key} className="px-3 py-1 text-right text-foreground">
+                    <td key={spec.key} className="text-foreground px-3 py-1 text-right">
                       {formatValue(Number(row[spec.key] ?? 0))}
                     </td>
                   ))}

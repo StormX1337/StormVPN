@@ -8,12 +8,22 @@ import { StripeSdkGateway } from './modules/billing/stripe.gateway';
 
 async function main(): Promise<void> {
   const env = loadApiEnv();
-  const logger = createLogger({ name: 'stormvpn-api', level: env.LOG_LEVEL, pretty: env.LOG_PRETTY });
-  const db = createPrismaClient({ url: env.DATABASE_URL, applicationName: 'stormvpn-api', poolSize: 20 });
+  const logger = createLogger({
+    name: 'stormvpn-api',
+    level: env.LOG_LEVEL,
+    pretty: env.LOG_PRETTY,
+  });
+  const db = createPrismaClient({
+    url: env.DATABASE_URL,
+    applicationName: 'stormvpn-api',
+    poolSize: 20,
+  });
   const redis = createRedis(env.REDIS_URL);
   const redisSubscriber = createRedis(env.REDIS_URL);
   const mail = new BullMailQueue(createRedis(env.REDIS_URL, { forBullMq: true }));
-  const stripe = env.STRIPE_SECRET_KEY ? new StripeSdkGateway(env.STRIPE_SECRET_KEY, env.STRIPE_WEBHOOK_SECRET) : null;
+  const stripe = env.STRIPE_SECRET_KEY
+    ? new StripeSdkGateway(env.STRIPE_SECRET_KEY, env.STRIPE_WEBHOOK_SECRET)
+    : null;
   if (!stripe) logger.warn('STRIPE_SECRET_KEY not set – paid plans and checkout are disabled');
 
   const app = await buildApp({

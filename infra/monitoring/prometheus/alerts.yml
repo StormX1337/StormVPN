@@ -1,0 +1,61 @@
+groups:
+  - name: stormvpn-nodes
+    rules:
+      - alert: VpnNodeDown
+        expr: stormvpn_node_up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: 'VPN node {{ $labels.server }} is not ONLINE'
+          description: 'No healthy heartbeat for 2 minutes. New users are no longer routed to this node.'
+      - alert: VpnNodeOverloaded
+        expr: stormvpn_node_load_percent > 85
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: 'VPN node {{ $labels.server }} load {{ $value | humanize }}%'
+          description: 'Quick Connect skips overloaded nodes – consider adding capacity in this region.'
+      - alert: VpnNodeDiskFull
+        expr: stormvpn_node_disk_percent > 90
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: 'Disk almost full on {{ $labels.server }}'
+      - alert: FleetCapacityLow
+        expr: sum(stormvpn_nodes{status="ONLINE"}) / sum(stormvpn_nodes) < 0.75
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: 'Less than 75% of VPN nodes are online'
+      - alert: AgentHeartbeatsFailing
+        expr: increase(stormvpn_agent_heartbeat_failures_total[10m]) > 5
+        labels: { severity: warning }
+        annotations:
+          summary: 'Agent on {{ $labels.server }} cannot reach the control plane'
+
+  - name: stormvpn-api
+    rules:
+      - alert: ApiHighErrorRate
+        expr: sum(rate(http_request_errors_total[5m])) / sum(rate(http_request_duration_seconds_count[5m])) > 0.02
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: 'API 5xx error rate above 2%'
+      - alert: ApiHighLatency
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket[5m]))) > 0.75
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: 'API p95 latency above 750 ms'
+      - alert: ApiDown
+        expr: up{job="stormvpn-api"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: 'StormVPN API is not scrapeable'
+      - alert: BusinessMetricsFailing
+        expr: stormvpn_business_scrape_success == 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: 'API cannot read business metrics from PostgreSQL'

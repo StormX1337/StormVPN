@@ -76,7 +76,9 @@ export async function seedPlans(prisma: PrismaClient): Promise<Plan[]> {
       isActive: true,
       isPublic: true,
     };
-    plans.push(await prisma.plan.upsert({ where: { slug: plan.slug }, create: data, update: data }));
+    plans.push(
+      await prisma.plan.upsert({ where: { slug: plan.slug }, create: data, update: data }),
+    );
   }
   return plans;
 }

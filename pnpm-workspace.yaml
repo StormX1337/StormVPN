@@ -1,13 +1,13 @@
 packages:
-  - "apps/*"
-  - "services/*"
-  - "packages/*"
+  - 'apps/*'
+  - 'services/*'
+  - 'packages/*'
 
 onlyBuiltDependencies:
-  - "@prisma/engines"
-  - "prisma"
-  - "esbuild"
-  - "@node-rs/argon2"
-  - "msgpackr-extract"
-  - "sharp"
-  - "unrs-resolver"
+  - '@prisma/engines'
+  - 'prisma'
+  - 'esbuild'
+  - '@node-rs/argon2'
+  - 'msgpackr-extract'
+  - 'sharp'
+  - 'unrs-resolver'

@@ -12,7 +12,15 @@ export type Role = keyof typeof Role;
 export const UserStatus = defineEnum(['ACTIVE', 'SUSPENDED', 'BANNED']);
 export type UserStatus = keyof typeof UserStatus;
 
-export const DevicePlatform = defineEnum(['WINDOWS', 'MACOS', 'LINUX', 'ANDROID', 'IOS', 'ROUTER', 'OTHER']);
+export const DevicePlatform = defineEnum([
+  'WINDOWS',
+  'MACOS',
+  'LINUX',
+  'ANDROID',
+  'IOS',
+  'ROUTER',
+  'OTHER',
+]);
 export type DevicePlatform = keyof typeof DevicePlatform;
 
 export const ClientType = defineEnum(['WEB', 'NATIVE']);

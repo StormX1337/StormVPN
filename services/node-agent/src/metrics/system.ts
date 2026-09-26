@@ -72,11 +72,18 @@ export class SystemMetricsCollector {
   private async memory(): Promise<{ percent: number; total: number }> {
     try {
       const info = parseMeminfo(await readFile('/proc/meminfo', 'utf8'));
-      if (info.totalBytes > 0) return { percent: ((info.totalBytes - info.availableBytes) / info.totalBytes) * 100, total: info.totalBytes };
+      if (info.totalBytes > 0)
+        return {
+          percent: ((info.totalBytes - info.availableBytes) / info.totalBytes) * 100,
+          total: info.totalBytes,
+        };
     } catch {
       /* fall back to os module */
     }
-    return { percent: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100, total: os.totalmem() };
+    return {
+      percent: ((os.totalmem() - os.freemem()) / os.totalmem()) * 100,
+      total: os.totalmem(),
+    };
   }
 
   private async disk(): Promise<number> {
@@ -93,21 +100,33 @@ export class SystemMetricsCollector {
     if (!iface) return { rxBps: 0, txBps: 0 };
     try {
       const base = `/sys/class/net/${iface}/statistics`;
-      const [rx, tx] = await Promise.all([readFile(`${base}/rx_bytes`, 'utf8'), readFile(`${base}/tx_bytes`, 'utf8')]);
+      const [rx, tx] = await Promise.all([
+        readFile(`${base}/rx_bytes`, 'utf8'),
+        readFile(`${base}/tx_bytes`, 'utf8'),
+      ]);
       const now = Date.now();
       const current = { rx: Number(rx), tx: Number(tx), at: now };
       const previous = this.lastNet;
       this.lastNet = current;
-      if (!previous || current.rx < previous.rx || current.tx < previous.tx) return { rxBps: 0, txBps: 0 };
+      if (!previous || current.rx < previous.rx || current.tx < previous.tx)
+        return { rxBps: 0, txBps: 0 };
       const seconds = Math.max(1, (now - previous.at) / 1000);
-      return { rxBps: (current.rx - previous.rx) / seconds, txBps: (current.tx - previous.tx) / seconds };
+      return {
+        rxBps: (current.rx - previous.rx) / seconds,
+        txBps: (current.tx - previous.tx) / seconds,
+      };
     } catch {
       return { rxBps: 0, txBps: 0 };
     }
   }
 
   async collect(): Promise<SystemMetrics> {
-    const [cpu, memory, disk, network] = await Promise.all([this.cpu(), this.memory(), this.disk(), this.network()]);
+    const [cpu, memory, disk, network] = await Promise.all([
+      this.cpu(),
+      this.memory(),
+      this.disk(),
+      this.network(),
+    ]);
     const [l1, l5, l15] = os.loadavg();
     return {
       cpuPercent: round(cpu),

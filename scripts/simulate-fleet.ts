@@ -57,7 +57,9 @@ async function beat(node: DemoNode, index: number, tick: number): Promise<void> 
 }
 
 async function main(): Promise<void> {
-  const nodes = JSON.parse(await readFile(new URL('../packages/database/.demo-nodes.json', import.meta.url), 'utf8')) as DemoNode[];
+  const nodes = JSON.parse(
+    await readFile(new URL('../packages/database/.demo-nodes.json', import.meta.url), 'utf8'),
+  ) as DemoNode[];
   console.log(`Simulating ${nodes.length} nodes against ${API} (Ctrl+C to stop)`);
   let tick = 0;
   const run = async () => {

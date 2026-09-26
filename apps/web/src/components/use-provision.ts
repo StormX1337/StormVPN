@@ -12,7 +12,8 @@ export function useProvision() {
   const client = useQueryClient();
   const [config, setConfig] = useState<GeneratedConfig | null>(null);
   const mutation = useMutation({
-    mutationFn: ({ target, mode }: { target: ProvisionTarget; mode: 'connect' | 'config' }) => provisionConfig(target, mode),
+    mutationFn: ({ target, mode }: { target: ProvisionTarget; mode: 'connect' | 'config' }) =>
+      provisionConfig(target, mode),
     onSuccess: (result) => {
       setConfig(result);
       void client.invalidateQueries({ queryKey: keys.status });
@@ -22,7 +23,8 @@ export function useProvision() {
     onError: (error) => toast.error(errorMessage(error)),
   });
   return {
-    provision: (target: ProvisionTarget, mode: 'connect' | 'config' = 'connect') => mutation.mutate({ target, mode }),
+    provision: (target: ProvisionTarget, mode: 'connect' | 'config' = 'connect') =>
+      mutation.mutate({ target, mode }),
     pending: mutation.isPending,
     config,
     close: () => setConfig(null),

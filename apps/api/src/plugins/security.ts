@@ -12,14 +12,26 @@ export const securityPlugin = fp(async (app: FastifyInstance, { env }: { env: Ap
   await app.register(helmet, {
     // The API only serves JSON: lock everything down.
     contentSecurityPolicy: {
-      directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] },
+      directives: {
+        defaultSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        baseUri: ["'none'"],
+        formAction: ["'none'"],
+      },
     },
     crossOriginResourcePolicy: { policy: 'same-site' },
     referrerPolicy: { policy: 'no-referrer' },
-    hsts: env.NODE_ENV === 'production' ? { maxAge: 63_072_000, includeSubDomains: true, preload: true } : false,
+    hsts:
+      env.NODE_ENV === 'production'
+        ? { maxAge: 63_072_000, includeSubDomains: true, preload: true }
+        : false,
   });
 
-  const allowed = new Set([...env.CORS_ORIGINS, new URL(env.APP_URL).origin, new URL(env.ADMIN_URL).origin]);
+  const allowed = new Set([
+    ...env.CORS_ORIGINS,
+    new URL(env.APP_URL).origin,
+    new URL(env.ADMIN_URL).origin,
+  ]);
   await app.register(cors, {
     origin: (origin, callback) => {
       // Same-origin and non-browser requests have no Origin header.
@@ -28,7 +40,13 @@ export const securityPlugin = fp(async (app: FastifyInstance, { env }: { env: Ap
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'authorization', 'x-csrf-token', 'x-stormvpn-client', 'x-request-id'],
+    allowedHeaders: [
+      'content-type',
+      'authorization',
+      'x-csrf-token',
+      'x-stormvpn-client',
+      'x-request-id',
+    ],
     exposedHeaders: ['x-request-id', 'retry-after'],
     maxAge: 600,
   });

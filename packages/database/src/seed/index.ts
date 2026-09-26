@@ -13,7 +13,9 @@ async function main(): Promise<void> {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
   if (process.env.NODE_ENV === 'production' && process.env.SEED_ALLOW_PRODUCTION !== 'true') {
-    throw new Error('Refusing to seed demo data in production (set SEED_ALLOW_PRODUCTION=true to override)');
+    throw new Error(
+      'Refusing to seed demo data in production (set SEED_ALLOW_PRODUCTION=true to override)',
+    );
   }
 
   const prisma = createPrismaClient({ url, applicationName: 'stormvpn-seed' });
@@ -27,7 +29,9 @@ async function main(): Promise<void> {
 
     const servers = await seedServers(prisma);
     console.log(`✔ servers: ${servers.servers.length}`);
-    console.log(`✔ demo nodes: ${servers.demoNodes.length} (simulated – run \`pnpm demo:fleet\` to keep them alive)`);
+    console.log(
+      `✔ demo nodes: ${servers.demoNodes.length} (simulated – run \`pnpm demo:fleet\` to keep them alive)`,
+    );
     await seedTraffic(prisma, [users.user.id, users.admin.id], servers.servers);
     console.log('✔ 30 days of demo traffic');
     // Demo node tokens for scripts/simulate-fleet.ts (gitignored, development only).
@@ -40,7 +44,9 @@ async function main(): Promise<void> {
     console.log('Development credentials (never use in production):');
     console.log(`  admin login     ${users.admin.email} / ${users.admin.password}`);
     console.log(`  user login      ${users.user.email} / ${users.user.password}`);
-    console.log(`  enrollment token for ${servers.enrollment.serverName}: ${servers.enrollment.token}`);
+    console.log(
+      `  enrollment token for ${servers.enrollment.serverName}: ${servers.enrollment.token}`,
+    );
   } finally {
     await prisma.$disconnect();
   }

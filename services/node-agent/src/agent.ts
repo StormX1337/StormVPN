@@ -70,7 +70,9 @@ export class NodeAgent {
       return existing;
     }
     if (!config.STORMVPN_ENROLLMENT_TOKEN) {
-      throw new Error('Node is not registered: set STORMVPN_ENROLLMENT_TOKEN (create one in Admin → Servers)');
+      throw new Error(
+        'Node is not registered: set STORMVPN_ENROLLMENT_TOKEN (create one in Admin → Servers)',
+      );
     }
     const keys = await state.serverKeys();
     const ips = await this.resolvePublicIps(true);
@@ -121,10 +123,16 @@ export class NodeAgent {
     await this.deps.wireguard.apply(config);
     this.appliedRevision = config.revision;
     this.snapshot.appliedRevision = config.revision;
-    this.deps.logger.info({ revision: config.revision, peers: config.peers.length }, 'WireGuard configuration applied');
+    this.deps.logger.info(
+      { revision: config.revision, peers: config.peers.length },
+      'WireGuard configuration applied',
+    );
   }
 
-  private async buildHeartbeat(): Promise<{ body: AgentHeartbeatInput; stats: AgentHeartbeatInput['peers'] }> {
+  private async buildHeartbeat(): Promise<{
+    body: AgentHeartbeatInput;
+    stats: AgentHeartbeatInput['peers'];
+  }> {
     const [system, status, health, ips] = await Promise.all([
       this.deps.metrics.collect(),
       this.deps.wireguard.status(),
@@ -137,7 +145,9 @@ export class NodeAgent {
     Object.assign(this.snapshot, {
       up: status !== null,
       peers: peers.length,
-      activePeers: peers.filter((peer) => peer.latestHandshake > 0 && now - peer.latestHandshake < ACTIVE_HANDSHAKE_SECONDS).length,
+      activePeers: peers.filter(
+        (peer) => peer.latestHandshake > 0 && now - peer.latestHandshake < ACTIVE_HANDSHAKE_SECONDS,
+      ).length,
       cpuPercent: system.cpuPercent,
       memoryPercent: system.memoryPercent,
       diskPercent: system.diskPercent,
@@ -200,14 +210,19 @@ export class NodeAgent {
 
   async start(): Promise<void> {
     await this.ensureRegistered();
-    await this.syncConfig(true).catch((error: unknown) => this.deps.logger.error({ err: error }, 'initial sync failed'));
+    await this.syncConfig(true).catch((error: unknown) =>
+      this.deps.logger.error({ err: error }, 'initial sync failed'),
+    );
     const loop = async () => {
       if (this.stopped) return;
       try {
         await this.tick();
       } catch (error) {
         const fatal = error instanceof ApiError && error.status === 401;
-        this.deps.logger.error({ err: error }, fatal ? 'node token rejected – re-enrollment required' : 'heartbeat failed');
+        this.deps.logger.error(
+          { err: error },
+          fatal ? 'node token rejected – re-enrollment required' : 'heartbeat failed',
+        );
       }
       if (!this.stopped) this.timer = setTimeout(() => void loop(), this.intervalSeconds * 1000);
     };

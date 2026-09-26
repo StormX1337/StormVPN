@@ -42,7 +42,8 @@ export class WgToolsManager implements WireGuardManager {
       this.logger.info({ path }, 'wrote WireGuard interface config');
     }
     const up = await this.isUp();
-    if (up && changed) await this.runner.run('wg-quick', ['down', this.iface], { timeoutMs: 30_000 });
+    if (up && changed)
+      await this.runner.run('wg-quick', ['down', this.iface], { timeoutMs: 30_000 });
     if (!up || changed) {
       await this.runner.run('wg-quick', ['up', this.iface], { timeoutMs: 30_000 });
       this.logger.info({ iface: this.iface }, 'WireGuard interface up');
@@ -57,7 +58,10 @@ export class WgToolsManager implements WireGuardManager {
   async apply(config: AgentConfigResponse): Promise<void> {
     const { privateKey } = await this.state.serverKeys();
     await this.ensureInterface(config, privateKey);
-    const file = await this.state.writeTemp('wg-sync.conf', renderSyncConfig(privateKey, config.interface.listenPort, config.peers));
+    const file = await this.state.writeTemp(
+      'wg-sync.conf',
+      renderSyncConfig(privateKey, config.interface.listenPort, config.peers),
+    );
     try {
       await this.runner.run('wg', ['syncconf', this.iface, file], { timeoutMs: 60_000 });
     } finally {
@@ -88,11 +92,25 @@ export class DryRunManager implements WireGuardManager {
 
   async apply(config: AgentConfigResponse): Promise<void> {
     this.config = config;
-    this.logger.info({ revision: config.revision, peers: config.peers.length }, '[dry-run] applied WireGuard config');
+    this.logger.info(
+      { revision: config.revision, peers: config.peers.length },
+      '[dry-run] applied WireGuard config',
+    );
   }
 
   async status(): Promise<WgInterfaceStatus | null> {
     if (!this.config) return null;
-    return { publicKey: 'dry-run', listenPort: this.config.interface.listenPort, peers: this.config.peers.map((peer) => ({ publicKey: peer.publicKey, endpoint: null, allowedIps: peer.allowedIps, latestHandshake: this.started, rxBytes: 0, txBytes: 0 })) };
+    return {
+      publicKey: 'dry-run',
+      listenPort: this.config.interface.listenPort,
+      peers: this.config.peers.map((peer) => ({
+        publicKey: peer.publicKey,
+        endpoint: null,
+        allowedIps: peer.allowedIps,
+        latestHandshake: this.started,
+        rxBytes: 0,
+        txBytes: 0,
+      })),
+    };
   }
 }

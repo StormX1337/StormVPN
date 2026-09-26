@@ -31,10 +31,18 @@ export class BruteForceGuard {
       this.counter.peek(this.ipKey(ip)),
     ]);
     if (account.count >= this.env.LOGIN_MAX_FAILURES) {
-      throw tooManyRequests('account_locked', 'Too many failed attempts. Try again later.', account.ttlSeconds);
+      throw tooManyRequests(
+        'account_locked',
+        'Too many failed attempts. Try again later.',
+        account.ttlSeconds,
+      );
     }
     if (source.count >= IP_FAILURE_LIMIT) {
-      throw tooManyRequests('too_many_attempts', 'Too many failed attempts. Try again later.', source.ttlSeconds);
+      throw tooManyRequests(
+        'too_many_attempts',
+        'Too many failed attempts. Try again later.',
+        source.ttlSeconds,
+      );
     }
   }
 

@@ -7,7 +7,7 @@ export function Input({ className, type, ...props }: React.ComponentProps<'input
       type={type}
       data-slot="input"
       className={cn(
-        'flex h-10 w-full min-w-0 rounded-lg border border-input bg-background/60 px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20',
+        'border-input bg-background/60 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/20 flex h-10 w-full min-w-0 rounded-lg border px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
       {...props}
@@ -20,7 +20,7 @@ export function Textarea({ className, ...props }: React.ComponentProps<'textarea
     <textarea
       data-slot="textarea"
       className={cn(
-        'flex min-h-20 w-full rounded-lg border border-input bg-background/60 px-3 py-2 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40',
+        'border-input bg-background/60 placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/40 flex min-h-20 w-full rounded-lg border px-3 py-2 text-sm shadow-xs outline-none focus-visible:ring-[3px]',
         className,
       )}
       {...props}
@@ -33,7 +33,7 @@ export function NativeSelect({ className, children, ...props }: React.ComponentP
     <select
       data-slot="select"
       className={cn(
-        'flex h-10 w-full rounded-lg border border-input bg-background/60 px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-50',
+        'border-input bg-background/60 focus-visible:border-ring focus-visible:ring-ring/40 flex h-10 w-full rounded-lg border px-3 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:opacity-50',
         className,
       )}
       {...props}
@@ -44,7 +44,13 @@ export function NativeSelect({ className, children, ...props }: React.ComponentP
 }
 
 export function Label({ className, ...props }: React.ComponentProps<'label'>) {
-  return <label data-slot="label" className={cn('text-sm font-medium leading-none select-none', className)} {...props} />;
+  return (
+    <label
+      data-slot="label"
+      className={cn('text-sm leading-none font-medium select-none', className)}
+      {...props}
+    />
+  );
 }
 
 export interface FieldProps {
@@ -62,11 +68,11 @@ export function Field({ label, htmlFor, error, hint, children, className }: Fiel
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error ? (
-        <p className="text-xs text-destructive" role="alert">
+        <p className="text-destructive text-xs" role="alert">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="text-muted-foreground text-xs">{hint}</p>
       ) : null}
     </div>
   );

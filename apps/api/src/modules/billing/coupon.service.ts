@@ -37,14 +37,17 @@ export class CouponService {
     const invalid = () => badRequest('invalid_coupon', 'This coupon code is not valid');
     if (!coupon || !coupon.isActive) throw invalid();
     if (coupon.validFrom && coupon.validFrom > now) throw invalid();
-    if (coupon.validUntil && coupon.validUntil <= now) throw badRequest('coupon_expired', 'This coupon has expired');
+    if (coupon.validUntil && coupon.validUntil <= now)
+      throw badRequest('coupon_expired', 'This coupon has expired');
     if (coupon.maxRedemptions !== null && coupon.timesRedeemed >= coupon.maxRedemptions) {
       throw badRequest('coupon_exhausted', 'This coupon has been fully redeemed');
     }
     if (planId && coupon.planIds.length > 0 && !coupon.planIds.includes(planId)) {
       throw badRequest('coupon_not_applicable', 'This coupon does not apply to the selected plan');
     }
-    const redeemed = await this.db.couponRedemption.findUnique({ where: { couponId_userId: { couponId: coupon.id, userId } } });
+    const redeemed = await this.db.couponRedemption.findUnique({
+      where: { couponId_userId: { couponId: coupon.id, userId } },
+    });
     if (redeemed) throw badRequest('coupon_already_used', 'You have already used this coupon');
     return coupon;
   }

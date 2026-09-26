@@ -15,8 +15,15 @@ export function VerifyEmailBanner() {
   return (
     <Alert variant="warning" className="items-center">
       <MailWarning />
-      <p className="flex-1">Confirm your email address to subscribe and connect. Check your inbox for the link.</p>
-      <Button size="sm" variant="outline" disabled={resend.isPending} onClick={() => resend.mutate()}>
+      <p className="flex-1">
+        Confirm your email address to subscribe and connect. Check your inbox for the link.
+      </p>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={resend.isPending}
+        onClick={() => resend.mutate()}
+      >
         Resend email
       </Button>
     </Alert>

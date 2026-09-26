@@ -20,7 +20,10 @@ export class ServerService {
     return { entitlements, favorites: new Set(favorites.map((favorite) => favorite.serverId)) };
   }
 
-  private map(server: ServerWithNode, ctx: Awaited<ReturnType<ServerService['context']>>): ServerDto {
+  private map(
+    server: ServerWithNode,
+    ctx: Awaited<ReturnType<ServerService['context']>>,
+  ): ServerDto {
     return toServerDto(server, this.catalog.status(server), {
       isFavorite: ctx.favorites.has(server.id),
       allowed: ctx.entitlements ? isServerAllowed(ctx.entitlements, server) : false,

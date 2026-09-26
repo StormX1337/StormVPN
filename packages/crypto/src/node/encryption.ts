@@ -40,7 +40,13 @@ export class DataEncryptor {
     if (associatedData) cipher.setAAD(Buffer.from(associatedData));
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
-    return [VERSION, this.current.id, iv.toString('base64url'), tag.toString('base64url'), ciphertext.toString('base64url')].join(':');
+    return [
+      VERSION,
+      this.current.id,
+      iv.toString('base64url'),
+      tag.toString('base64url'),
+      ciphertext.toString('base64url'),
+    ].join(':');
   }
 
   decrypt(payload: string, associatedData?: string): string {
@@ -53,7 +59,10 @@ export class DataEncryptor {
     const decipher = createDecipheriv(ALGORITHM, key, Buffer.from(iv, 'base64url'));
     if (associatedData) decipher.setAAD(Buffer.from(associatedData));
     decipher.setAuthTag(Buffer.from(tag, 'base64url'));
-    return Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]).toString('utf8');
+    return Buffer.concat([
+      decipher.update(Buffer.from(ciphertext, 'base64url')),
+      decipher.final(),
+    ]).toString('utf8');
   }
 
   /** True when the payload was encrypted with an older key and should be re-encrypted. */

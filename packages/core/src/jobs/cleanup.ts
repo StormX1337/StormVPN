@@ -13,7 +13,9 @@ export async function runCleanup(ctx: JobContext): Promise<JobResult> {
     },
   });
   const tokens = await ctx.db.verificationToken.deleteMany({
-    where: { OR: [{ expiresAt: { lt: new Date(now - DAY) } }, { usedAt: { lt: new Date(now - DAY) } }] },
+    where: {
+      OR: [{ expiresAt: { lt: new Date(now - DAY) } }, { usedAt: { lt: new Date(now - DAY) } }],
+    },
   });
   const heartbeats = await ctx.db.nodeHeartbeat.deleteMany({
     where: { createdAt: { lt: new Date(now - config.heartbeatRetentionDays * DAY) } },

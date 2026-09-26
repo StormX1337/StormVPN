@@ -38,7 +38,10 @@ export class StripeCatalogService {
       if (previous) await this.gateway.archivePrice(previous);
     }
     if (productId === plan.stripeProductId && priceId === plan.stripePriceId) return plan;
-    return this.db.plan.update({ where: { id: plan.id }, data: { stripeProductId: productId, stripePriceId: priceId } });
+    return this.db.plan.update({
+      where: { id: plan.id },
+      data: { stripeProductId: productId, stripePriceId: priceId },
+    });
   }
 
   async syncCoupon(coupon: Coupon): Promise<Coupon> {

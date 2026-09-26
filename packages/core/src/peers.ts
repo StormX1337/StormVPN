@@ -2,7 +2,12 @@ import type { Database, DbClient } from '@stormvpn/database';
 import { getEntitlements, getMonthlyTrafficBytes, isServerAllowed } from './entitlements';
 
 /** Reasons set automatically by entitlement enforcement (reversible without admin action). */
-export const AUTO_DISABLE_REASONS = ['SUSPENDED', 'NO_SUBSCRIPTION', 'TRAFFIC_LIMIT', 'PLAN_RESTRICTION'] as const;
+export const AUTO_DISABLE_REASONS = [
+  'SUSPENDED',
+  'NO_SUBSCRIPTION',
+  'TRAFFIC_LIMIT',
+  'PLAN_RESTRICTION',
+] as const;
 export type AutoDisableReason = (typeof AUTO_DISABLE_REASONS)[number];
 export const ADMIN_DISABLE_REASON = 'ADMIN';
 
@@ -10,7 +15,10 @@ export const ADMIN_DISABLE_REASON = 'ADMIN';
 export async function bumpPeerRevision(db: DbClient, serverIds: Iterable<string>): Promise<void> {
   const ids = [...new Set(serverIds)];
   if (ids.length === 0) return;
-  await db.vPNServer.updateMany({ where: { id: { in: ids } }, data: { peerRevision: { increment: 1 } } });
+  await db.vPNServer.updateMany({
+    where: { id: { in: ids } },
+    data: { peerRevision: { increment: 1 } },
+  });
 }
 
 export interface ReconcileResult {
@@ -24,8 +32,15 @@ export interface ReconcileResult {
  * they are allowed to use right now (account status, subscription, plan
  * restrictions, device limit, traffic allowance). Admin-disabled peers are left untouched.
  */
-export async function reconcileUserPeers(db: Database, userId: string, now = new Date()): Promise<ReconcileResult> {
-  const user = await db.user.findUnique({ where: { id: userId }, select: { status: true, deletedAt: true } });
+export async function reconcileUserPeers(
+  db: Database,
+  userId: string,
+  now = new Date(),
+): Promise<ReconcileResult> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { status: true, deletedAt: true },
+  });
   if (!user) return { disabled: 0, enabled: 0, reason: null };
 
   const entitlements = await getEntitlements(db, userId);
@@ -42,7 +57,9 @@ export async function reconcileUserPeers(db: Database, userId: string, now = new
     orderBy: { createdAt: 'asc' },
     select: { id: true },
   });
-  const allowedDevices = new Set(devices.slice(0, entitlements?.maxDevices ?? 0).map((device) => device.id));
+  const allowedDevices = new Set(
+    devices.slice(0, entitlements?.maxDevices ?? 0).map((device) => device.id),
+  );
 
   const peers = await db.vPNPeer.findMany({
     where: { userId },
@@ -67,7 +84,8 @@ export async function reconcileUserPeers(db: Database, userId: string, now = new
         desired = 'PLAN_RESTRICTION';
       }
     }
-    const adminDisabled = peer.status === 'DISABLED' && peer.disabledReason === ADMIN_DISABLE_REASON;
+    const adminDisabled =
+      peer.status === 'DISABLED' && peer.disabledReason === ADMIN_DISABLE_REASON;
     if (adminDisabled) continue;
 
     if (desired && (peer.status === 'ACTIVE' || peer.disabledReason !== desired)) {

@@ -60,7 +60,9 @@ export class HttpClient {
   private async csrfToken(): Promise<string> {
     const existing = readCookie(CSRF_COOKIE);
     if (existing) return existing;
-    this.csrfPromise ??= this.fetchImpl(`${this.baseUrl}/api/v1/auth/csrf`, { credentials: 'include' })
+    this.csrfPromise ??= this.fetchImpl(`${this.baseUrl}/api/v1/auth/csrf`, {
+      credentials: 'include',
+    })
       .then(async (response) => ((await response.json()) as { csrfToken: string }).csrfToken)
       .finally(() => {
         this.csrfPromise = null;
@@ -105,7 +107,12 @@ export class HttpClient {
     if (response.ok) return (await response.json()) as T;
 
     const error = await ApiError.fromResponse(response);
-    if (response.status === 401 && !options.noRefresh && REFRESHABLE.has(error.code) && (await this.refresh())) {
+    if (
+      response.status === 401 &&
+      !options.noRefresh &&
+      REFRESHABLE.has(error.code) &&
+      (await this.refresh())
+    ) {
       return this.request<T>(method, path, { ...options, noRefresh: true });
     }
     if (response.status === 401 && !options.noRefresh) this.options.onSessionExpired?.();
@@ -129,7 +136,9 @@ export class HttpClient {
           store?.clear();
           return false;
         }
-        const body = (await response.json()) as { tokens?: { accessToken: string; refreshToken: string } };
+        const body = (await response.json()) as {
+          tokens?: { accessToken: string; refreshToken: string };
+        };
         if (store && body.tokens) store.setTokens(body.tokens);
         return true;
       } catch {

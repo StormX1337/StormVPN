@@ -196,13 +196,25 @@ export const couponCreateSchema = z
     const hasPercent = value.percentOff != null;
     const hasAmount = value.amountOffCents != null;
     if (hasPercent === hasAmount) {
-      ctx.addIssue({ code: 'custom', path: ['percentOff'], message: 'Set exactly one of percentOff or amountOffCents' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['percentOff'],
+        message: 'Set exactly one of percentOff or amountOffCents',
+      });
     }
     if (hasAmount && !value.currency) {
-      ctx.addIssue({ code: 'custom', path: ['currency'], message: 'Currency is required for amount discounts' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['currency'],
+        message: 'Currency is required for amount discounts',
+      });
     }
     if (value.duration === 'REPEATING' && !value.durationInMonths) {
-      ctx.addIssue({ code: 'custom', path: ['durationInMonths'], message: 'Required for repeating coupons' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['durationInMonths'],
+        message: 'Required for repeating coupons',
+      });
     }
     if (value.validFrom && value.validUntil && value.validFrom >= value.validUntil) {
       ctx.addIssue({ code: 'custom', path: ['validUntil'], message: 'Must be after validFrom' });
@@ -221,7 +233,10 @@ export const settingsUpdateSchema = z
     maintenanceMode: z.boolean(),
     maintenanceMessage: z.string().trim().max(500).nullable(),
     registrationEnabled: z.boolean(),
-    defaultDns: z.array(z.union([ipv4Schema, ipv6Schema])).min(1).max(4),
+    defaultDns: z
+      .array(z.union([ipv4Schema, ipv6Schema]))
+      .min(1)
+      .max(4),
     abuseAutoSuspendScore: z.number().int().min(10).max(1000),
     maxConfigGenerationsPerHour: z.number().int().min(1).max(1000),
     serverOverloadThreshold: z.number().int().min(50).max(100),
@@ -250,7 +265,13 @@ export const riskFlagCreateSchema = z.object({
   subjectValue: z.string().trim().min(1).max(100),
   reason: z.string().trim().min(3).max(500),
   score: z.number().int().min(1).max(1000),
-  expiresInHours: z.number().int().min(1).max(24 * 365).nullable().optional(),
+  expiresInHours: z
+    .number()
+    .int()
+    .min(1)
+    .max(24 * 365)
+    .nullable()
+    .optional(),
 });
 
 export const adminConnectionsQuerySchema = paginationQuerySchema.extend({

@@ -7,7 +7,10 @@ import { reconcileUserPeers } from './peers';
 export const SESSION_CACHE_PREFIX = 'sess:';
 
 /** Invalidates cached session validity so revocation takes effect immediately on every API replica. */
-export async function invalidateSessionCache(redis: Redis | undefined, sessionIds: string[]): Promise<void> {
+export async function invalidateSessionCache(
+  redis: Redis | undefined,
+  sessionIds: string[],
+): Promise<void> {
   if (!redis || sessionIds.length === 0) return;
   const pipeline = redis.pipeline();
   for (const id of sessionIds) pipeline.set(`${SESSION_CACHE_PREFIX}${id}`, '0', 'EX', 3600);
@@ -22,18 +25,29 @@ export async function revokeUserSessions(
   exceptSessionId?: string,
 ): Promise<number> {
   const sessions = await db.session.findMany({
-    where: { userId, revokedAt: null, ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}) },
+    where: {
+      userId,
+      revokedAt: null,
+      ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}),
+    },
     select: { id: true },
   });
   const ids = sessions.map((session) => session.id);
   if (ids.length === 0) return 0;
-  await db.session.updateMany({ where: { id: { in: ids } }, data: { revokedAt: new Date(), revokedReason: reason } });
+  await db.session.updateMany({
+    where: { id: { in: ids } },
+    data: { revokedAt: new Date(), revokedReason: reason },
+  });
   await invalidateSessionCache(redis, ids);
   return ids.length;
 }
 
 /** Ends all live VPN connections of a user (does not delete peers). */
-export async function disconnectUser(db: Database, userId: string, reason: string): Promise<number> {
+export async function disconnectUser(
+  db: Database,
+  userId: string,
+  reason: string,
+): Promise<number> {
   const result = await db.vPNConnection.updateMany({
     where: { userId, status: { in: ['CONNECTING', 'CONNECTED'] } },
     data: { status: 'DISCONNECTED', endedAt: new Date(), disconnectReason: reason },
@@ -77,12 +91,25 @@ export async function suspendUser(
   });
 }
 
-export async function unsuspendUser(db: Database, userId: string, actor: ActorContext): Promise<void> {
+export async function unsuspendUser(
+  db: Database,
+  userId: string,
+  actor: ActorContext,
+): Promise<void> {
   await db.user.update({
     where: { id: userId },
     data: { status: 'ACTIVE', suspendedAt: null, suspendedReason: null, riskScore: 0 },
   });
   await reconcileUserPeers(db, userId);
-  await recordSecurityEvent(db, { userId, type: 'ACCOUNT_UNSUSPENDED', metadata: { actorType: actor.actorType } });
-  await writeAuditLog(db, { ...actor, action: 'user.unsuspend', targetType: 'user', targetId: userId });
+  await recordSecurityEvent(db, {
+    userId,
+    type: 'ACCOUNT_UNSUSPENDED',
+    metadata: { actorType: actor.actorType },
+  });
+  await writeAuditLog(db, {
+    ...actor,
+    action: 'user.unsuspend',
+    targetType: 'user',
+    targetId: userId,
+  });
 }

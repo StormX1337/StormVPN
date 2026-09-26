@@ -10,5 +10,7 @@ export function SessionTimer({ since }: { since: string | null }) {
     return () => clearInterval(timer);
   }, []);
   if (!since) return <span>—</span>;
-  return <span className="tabular">{formatDuration((now - new Date(since).getTime()) / 1000)}</span>;
+  return (
+    <span className="tabular">{formatDuration((now - new Date(since).getTime()) / 1000)}</span>
+  );
 }

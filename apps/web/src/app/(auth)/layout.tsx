@@ -9,8 +9,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <Link href="/" className="relative mb-8">
         <Logo />
       </Link>
-      <div className="relative w-full max-w-md animate-fade-in rounded-2xl border bg-card/80 p-6 shadow-2xl backdrop-blur sm:p-8">{children}</div>
-      <p className="relative mt-6 text-xs text-muted-foreground">Protected by WireGuard® · No activity logs</p>
+      <div className="animate-fade-in bg-card/80 relative w-full max-w-md rounded-2xl border p-6 shadow-2xl backdrop-blur sm:p-8">
+        {children}
+      </div>
+      <p className="text-muted-foreground relative mt-6 text-xs">
+        Protected by WireGuard® · No activity logs
+      </p>
     </div>
   );
 }

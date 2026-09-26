@@ -14,7 +14,12 @@ export interface NormalizedSubscription {
   trialStart: Date | null;
   trialEnd: Date | null;
   metadata: Record<string, string>;
-  paymentMethod: { brand: string; last4: string; expMonth: number | null; expYear: number | null } | null;
+  paymentMethod: {
+    brand: string;
+    last4: string;
+    expMonth: number | null;
+    expYear: number | null;
+  } | null;
 }
 
 export interface NormalizedInvoice {
@@ -76,7 +81,12 @@ export interface StripeGateway {
   setCancelAtPeriodEnd(subscriptionId: string, cancel: boolean): Promise<void>;
   cancelSubscriptionNow(subscriptionId: string): Promise<void>;
   constructEvent(payload: Buffer, signature: string): GatewayEvent;
-  ensureProduct(params: { productId: string | null; name: string; description: string | null; planId: string }): Promise<string>;
+  ensureProduct(params: {
+    productId: string | null;
+    name: string;
+    description: string | null;
+    planId: string;
+  }): Promise<string>;
   createPrice(params: {
     productId: string;
     unitAmount: number;
@@ -101,8 +111,12 @@ const idOf = (value: string | { id: string } | null | undefined): string | null 
  * billing periods live on subscription items instead of the subscription.
  */
 export function normalizeSubscription(subscription: Stripe.Subscription): NormalizedSubscription {
-  const item = subscription.items?.data?.[0] as (Stripe.SubscriptionItem & Record<string, unknown>) | undefined;
-  const legacy = subscription as unknown as { current_period_start?: number; current_period_end?: number };
+  const item = subscription.items?.data?.[0] as
+    (Stripe.SubscriptionItem & Record<string, unknown>) | undefined;
+  const legacy = subscription as unknown as {
+    current_period_start?: number;
+    current_period_end?: number;
+  };
   const pm = subscription.default_payment_method;
   const card = pm && typeof pm !== 'string' ? pm.card : null;
   return {
@@ -110,8 +124,12 @@ export function normalizeSubscription(subscription: Stripe.Subscription): Normal
     customerId: idOf(subscription.customer)!,
     status: subscription.status,
     priceId: item?.price?.id ?? null,
-    currentPeriodStart: toDate((item?.current_period_start as number | undefined) ?? legacy.current_period_start),
-    currentPeriodEnd: toDate((item?.current_period_end as number | undefined) ?? legacy.current_period_end),
+    currentPeriodStart: toDate(
+      (item?.current_period_start as number | undefined) ?? legacy.current_period_start,
+    ),
+    currentPeriodEnd: toDate(
+      (item?.current_period_end as number | undefined) ?? legacy.current_period_end,
+    ),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || subscription.cancel_at !== null,
     canceledAt: toDate(subscription.canceled_at),
     endedAt: toDate(subscription.ended_at),
@@ -119,14 +137,21 @@ export function normalizeSubscription(subscription: Stripe.Subscription): Normal
     trialEnd: toDate(subscription.trial_end),
     metadata: (subscription.metadata ?? {}) as Record<string, string>,
     paymentMethod: card
-      ? { brand: card.brand, last4: card.last4, expMonth: card.exp_month ?? null, expYear: card.exp_year ?? null }
+      ? {
+          brand: card.brand,
+          last4: card.last4,
+          expMonth: card.exp_month ?? null,
+          expYear: card.exp_year ?? null,
+        }
       : null,
   };
 }
 
 /** Normalises an invoice (subscription reference moved to `parent.subscription_details` in newer API versions). */
 export function normalizeInvoice(raw: Record<string, unknown>): NormalizedInvoice {
-  const invoice = raw as unknown as Stripe.Invoice & { subscription?: string | { id: string } | null };
+  const invoice = raw as unknown as Stripe.Invoice & {
+    subscription?: string | { id: string } | null;
+  };
   const parentSubscription = invoice.parent?.subscription_details?.subscription;
   return {
     id: invoice.id!,
@@ -167,7 +192,11 @@ export class StripeSdkGateway implements StripeGateway {
     });
   }
 
-  async createCustomer(params: { email: string; name: string | null; userId: string }): Promise<string> {
+  async createCustomer(params: {
+    email: string;
+    name: string | null;
+    userId: string;
+  }): Promise<string> {
     const customer = await this.stripe.customers.create(
       { email: params.email, name: params.name ?? undefined, metadata: { userId: params.userId } },
       { idempotencyKey: `customer-${params.userId}` },
@@ -176,7 +205,11 @@ export class StripeSdkGateway implements StripeGateway {
   }
 
   async createCheckoutSession(params: CheckoutParams): Promise<{ id: string; url: string }> {
-    const metadata = { userId: params.userId, planId: params.planId, ...(params.couponId ? { couponId: params.couponId } : {}) };
+    const metadata = {
+      userId: params.userId,
+      planId: params.planId,
+      ...(params.couponId ? { couponId: params.couponId } : {}),
+    };
     const session = await this.stripe.checkout.sessions.create(
       {
         mode: 'subscription',
@@ -187,7 +220,9 @@ export class StripeSdkGateway implements StripeGateway {
           metadata,
           ...(params.trialDays ? { trial_period_days: params.trialDays } : {}),
         },
-        ...(params.stripeCouponId ? { discounts: [{ coupon: params.stripeCouponId }] } : { allow_promotion_codes: true }),
+        ...(params.stripeCouponId
+          ? { discounts: [{ coupon: params.stripeCouponId }] }
+          : { allow_promotion_codes: true }),
         success_url: params.successUrl,
         cancel_url: params.cancelUrl,
         metadata,
@@ -199,12 +234,17 @@ export class StripeSdkGateway implements StripeGateway {
   }
 
   async createPortalSession(customerId: string, returnUrl: string): Promise<string> {
-    const session = await this.stripe.billingPortal.sessions.create({ customer: customerId, return_url: returnUrl });
+    const session = await this.stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl,
+    });
     return session.url;
   }
 
   async retrieveSubscription(subscriptionId: string): Promise<NormalizedSubscription> {
-    const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, { expand: ['default_payment_method'] });
+    const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, {
+      expand: ['default_payment_method'],
+    });
     return normalizeSubscription(subscription);
   }
 
@@ -229,10 +269,19 @@ export class StripeSdkGateway implements StripeGateway {
 
   constructEvent(payload: Buffer, signature: string): GatewayEvent {
     if (!this.webhookSecret) throw new Error('STRIPE_WEBHOOK_SECRET is not configured');
-    return this.stripe.webhooks.constructEvent(payload, signature, this.webhookSecret) as unknown as GatewayEvent;
+    return this.stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      this.webhookSecret,
+    ) as unknown as GatewayEvent;
   }
 
-  async ensureProduct(params: { productId: string | null; name: string; description: string | null; planId: string }): Promise<string> {
+  async ensureProduct(params: {
+    productId: string | null;
+    name: string;
+    description: string | null;
+    planId: string;
+  }): Promise<string> {
     if (params.productId) {
       await this.stripe.products.update(params.productId, {
         name: params.name,
@@ -241,7 +290,11 @@ export class StripeSdkGateway implements StripeGateway {
       return params.productId;
     }
     const product = await this.stripe.products.create(
-      { name: params.name, description: params.description ?? undefined, metadata: { planId: params.planId } },
+      {
+        name: params.name,
+        description: params.description ?? undefined,
+        metadata: { planId: params.planId },
+      },
       { idempotencyKey: `product-${params.planId}` },
     );
     return product.id;
@@ -270,10 +323,14 @@ export class StripeSdkGateway implements StripeGateway {
     await this.stripe.prices.update(priceId, { active: false });
   }
 
-  async createCoupon(params: CreateCouponParams): Promise<{ couponId: string; promotionCodeId: string }> {
+  async createCoupon(
+    params: CreateCouponParams,
+  ): Promise<{ couponId: string; promotionCodeId: string }> {
     const coupon = await this.stripe.coupons.create({
       name: params.name ?? params.code,
-      ...(params.percentOff ? { percent_off: params.percentOff } : { amount_off: params.amountOffCents!, currency: params.currency! }),
+      ...(params.percentOff
+        ? { percent_off: params.percentOff }
+        : { amount_off: params.amountOffCents!, currency: params.currency! }),
       duration: params.duration.toLowerCase() as Stripe.CouponCreateParams.Duration,
       ...(params.duration === 'REPEATING' ? { duration_in_months: params.durationInMonths! } : {}),
       ...(params.maxRedemptions ? { max_redemptions: params.maxRedemptions } : {}),

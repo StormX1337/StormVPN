@@ -5,7 +5,8 @@ import { isIPv4, isIPv6 } from '@stormvpn/validation';
 export function parseDefaultRoute(content: string): string | null {
   for (const line of content.split('\n').slice(1)) {
     const [iface, destination, , flags] = line.trim().split(/\s+/);
-    if (iface && destination === '00000000' && (Number.parseInt(flags ?? '0', 16) & 0x2) !== 0) return iface;
+    if (iface && destination === '00000000' && (Number.parseInt(flags ?? '0', 16) & 0x2) !== 0)
+      return iface;
   }
   return null;
 }

@@ -1,6 +1,23 @@
 'use client';
 
-import { Button, Card, CardDescription, CardHeader, CardTitle, cn, formatBytes, PageHeader, Skeleton, StatTile, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@stormvpn/ui';
+import {
+  Button,
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  cn,
+  formatBytes,
+  PageHeader,
+  Skeleton,
+  StatTile,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@stormvpn/ui';
 import { BarList, TimeSeriesChart } from '@stormvpn/ui/charts';
 import { useQuery } from '@tanstack/react-query';
 import { Check } from 'lucide-react';
@@ -24,20 +41,40 @@ export function TrafficView() {
   });
   return (
     <>
-      <PageHeader title="Traffic" description="Aggregated volume only – StormVPN never logs destinations." />
+      <PageHeader
+        title="Traffic"
+        description="Aggregated volume only – StormVPN never logs destinations."
+      />
       <div className="flex flex-wrap gap-2" role="group" aria-label="Date range">
         {RANGES.map((range) => (
-          <Button key={range.days} size="sm" variant={range.days === days ? 'secondary' : 'ghost'} aria-pressed={range.days === days} onClick={() => setDays(range.days)}>
+          <Button
+            key={range.days}
+            size="sm"
+            variant={range.days === days ? 'secondary' : 'ghost'}
+            aria-pressed={range.days === days}
+            onClick={() => setDays(range.days)}
+          >
             {range.days === days ? <Check className="size-4 stroke-[3]" /> : null}
             {range.label}
           </Button>
         ))}
       </div>
-      <div className={cn('flex flex-col gap-4 transition-opacity', isPlaceholderData && 'opacity-60')}>
+      <div
+        className={cn('flex flex-col gap-4 transition-opacity', isPlaceholderData && 'opacity-60')}
+      >
         <div className="grid gap-4 sm:grid-cols-3">
-          <StatTile label="Total volume" value={data ? formatBytes(data.totalRxBytes + data.totalTxBytes, 2) : '—'} />
-          <StatTile label="Download (to clients)" value={data ? formatBytes(data.totalTxBytes, 2) : '—'} />
-          <StatTile label="Upload (from clients)" value={data ? formatBytes(data.totalRxBytes, 2) : '—'} />
+          <StatTile
+            label="Total volume"
+            value={data ? formatBytes(data.totalRxBytes + data.totalTxBytes, 2) : '—'}
+          />
+          <StatTile
+            label="Download (to clients)"
+            value={data ? formatBytes(data.totalTxBytes, 2) : '—'}
+          />
+          <StatTile
+            label="Upload (from clients)"
+            value={data ? formatBytes(data.totalRxBytes, 2) : '—'}
+          />
         </div>
         <Card>
           <CardHeader>
@@ -45,7 +82,11 @@ export function TrafficView() {
           </CardHeader>
           {data ? (
             <TimeSeriesChart
-              data={data.daily.map((day) => ({ date: day.date, download: day.txBytes, upload: day.rxBytes }))}
+              data={data.daily.map((day) => ({
+                date: day.date,
+                download: day.txBytes,
+                upload: day.rxBytes,
+              }))}
               xKey="date"
               title="Daily traffic"
               series={[
@@ -53,7 +94,12 @@ export function TrafficView() {
                 { key: 'upload', label: 'Upload (from clients)', color: '--chart-2' },
               ]}
               formatValue={(value) => formatBytes(value)}
-              formatX={(value) => new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+              formatX={(value) =>
+                new Date(`${value}T00:00:00Z`).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                })
+              }
             />
           ) : (
             <Skeleton className="h-64" />
@@ -67,12 +113,20 @@ export function TrafficView() {
                 <CardDescription>Total volume in the selected range</CardDescription>
               </div>
             </CardHeader>
-            <BarList items={(data?.byServer ?? []).map((row) => ({ id: row.serverId, label: row.serverName, value: row.rxBytes + row.txBytes, detail: `↓ ${formatBytes(row.txBytes)} · ↑ ${formatBytes(row.rxBytes)}` }))} formatValue={(value) => formatBytes(value)} />
+            <BarList
+              items={(data?.byServer ?? []).map((row) => ({
+                id: row.serverId,
+                label: row.serverName,
+                value: row.rxBytes + row.txBytes,
+                detail: `↓ ${formatBytes(row.txBytes)} · ↑ ${formatBytes(row.rxBytes)}`,
+              }))}
+              formatValue={(value) => formatBytes(value)}
+            />
           </Card>
           <Card className="p-0">
             <div className="px-5 pt-5">
               <h3 className="text-sm font-semibold">Top accounts by volume</h3>
-              <p className="text-sm text-muted-foreground">For fair-use and abuse review</p>
+              <p className="text-muted-foreground text-sm">For fair-use and abuse review</p>
             </div>
             <Table>
               <TableHeader>

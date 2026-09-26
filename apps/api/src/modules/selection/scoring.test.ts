@@ -53,13 +53,22 @@ describe('server selection / load balancing', () => {
   it('respects plan countries and server classes', () => {
     const ctx = context({ allowedCountries: ['NL'], serverClasses: ['STANDARD'] });
     expect(ineligibility(candidate({ countryCode: 'DE' }), ctx)).toBe('plan_country');
-    expect(ineligibility(candidate({ countryCode: 'NL', serverClass: 'STREAMING' }), ctx)).toBe('plan_class');
+    expect(ineligibility(candidate({ countryCode: 'NL', serverClass: 'STREAMING' }), ctx)).toBe(
+      'plan_class',
+    );
     expect(ineligibility(candidate({ countryCode: 'NL' }), ctx)).toBeNull();
   });
 
   it('prefers lower latency when load is similar', () => {
     const servers = [
-      candidate({ name: 'US-NYC-01', countryCode: 'US', region: 'NORTH_AMERICA', latitude: 40.71, longitude: -74, load: 20 }),
+      candidate({
+        name: 'US-NYC-01',
+        countryCode: 'US',
+        region: 'NORTH_AMERICA',
+        latitude: 40.71,
+        longitude: -74,
+        load: 20,
+      }),
       candidate({ name: 'DE-BER-01', latitude: 52.52, longitude: 13.4, load: 25 }),
     ];
     expect(selectServer(servers, context())?.selected.candidate.name).toBe('DE-BER-01');
@@ -81,17 +90,39 @@ describe('server selection / load balancing', () => {
 
   it('reserves headroom near the overload threshold for high priority plans', () => {
     const busy = candidate({ name: 'BUSY', id: 'busy', load: 80, activeConnections: 100 });
-    const far = candidate({ name: 'FAR', id: 'far', load: 30, activeConnections: 100, latitude: 40.71, longitude: -74 });
-    expect(selectServer([busy, far], context({ planPriority: 0 }))?.selected.candidate.name).toBe('FAR');
-    const priority = selectServer([busy, far], context({ planPriority: 100, latencies: { busy: 5, far: 180 } }));
+    const far = candidate({
+      name: 'FAR',
+      id: 'far',
+      load: 30,
+      activeConnections: 100,
+      latitude: 40.71,
+      longitude: -74,
+    });
+    expect(selectServer([busy, far], context({ planPriority: 0 }))?.selected.candidate.name).toBe(
+      'FAR',
+    );
+    const priority = selectServer(
+      [busy, far],
+      context({ planPriority: 100, latencies: { busy: 5, far: 180 } }),
+    );
     expect(priority?.selected.candidate.name).toBe('BUSY');
   });
 
   it('applies location filters and favourites', () => {
-    const nl = candidate({ name: 'NL-AMS-01', id: 'nl', countryCode: 'NL', city: 'Amsterdam', load: 30 });
+    const nl = candidate({
+      name: 'NL-AMS-01',
+      id: 'nl',
+      countryCode: 'NL',
+      city: 'Amsterdam',
+      load: 30,
+    });
     const de = candidate({ name: 'DE-FRA-02', id: 'de', load: 10 });
-    expect(selectServer([nl, de], context({ filters: { country: 'NL' } }))?.selected.candidate.name).toBe('NL-AMS-01');
-    const fav = context({ preferences: { favoriteServerIds: new Set(['nl']), preferredCountry: 'NL' } });
+    expect(
+      selectServer([nl, de], context({ filters: { country: 'NL' } }))?.selected.candidate.name,
+    ).toBe('NL-AMS-01');
+    const fav = context({
+      preferences: { favoriteServerIds: new Set(['nl']), preferredCountry: 'NL' },
+    });
     expect(selectServer([nl, de], fav)?.selected.candidate.name).toBe('NL-AMS-01');
   });
 });

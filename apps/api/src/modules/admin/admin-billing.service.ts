@@ -1,6 +1,12 @@
 import { type ActorContext, writeAuditLog } from '@stormvpn/core';
 import { type Database, isUniqueViolation, type Prisma } from '@stormvpn/database';
-import type { AdminPlanDto, AdminSubscriptionDto, CouponDto, Paginated, PaymentDto } from '@stormvpn/types';
+import type {
+  AdminPlanDto,
+  AdminSubscriptionDto,
+  CouponDto,
+  Paginated,
+  PaymentDto,
+} from '@stormvpn/types';
 import type { CouponCreateInput, PlanCreateInput, PlanUpdateInput } from '@stormvpn/validation';
 import { badRequest, conflict, notFound, serviceUnavailable } from '../../lib/errors';
 import { pageArgs, paginated } from '../../lib/pagination';
@@ -22,7 +28,13 @@ export class AdminBillingService {
 
   // ── Subscriptions & payments ─────────────────────────────
 
-  async listSubscriptions(query: { page: number; pageSize: number; status?: string; planId?: string; search?: string }): Promise<Paginated<AdminSubscriptionDto>> {
+  async listSubscriptions(query: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    planId?: string;
+    search?: string;
+  }): Promise<Paginated<AdminSubscriptionDto>> {
     const where: Prisma.SubscriptionWhereInput = {
       ...(query.status ? { status: query.status as never } : {}),
       ...(query.planId ? { planId: query.planId } : {}),
@@ -60,7 +72,8 @@ export class AdminBillingService {
     const subscription = await this.db.subscription.findUnique({ where: { id } });
     if (!subscription) throw notFound('Subscription');
     if (subscription.provider === 'STRIPE' && subscription.stripeSubscriptionId) {
-      if (!this.gateway) throw serviceUnavailable('billing_unavailable', 'Stripe is not configured');
+      if (!this.gateway)
+        throw serviceUnavailable('billing_unavailable', 'Stripe is not configured');
       if (immediately) await this.gateway.cancelSubscriptionNow(subscription.stripeSubscriptionId);
       else await this.gateway.setCancelAtPeriodEnd(subscription.stripeSubscriptionId, true);
       await this.sync?.syncById(subscription.stripeSubscriptionId);
@@ -68,26 +81,49 @@ export class AdminBillingService {
       const now = new Date();
       await this.db.subscription.update({
         where: { id },
-        data: immediately ? { status: 'CANCELED', endedAt: now, canceledAt: now } : { cancelAtPeriodEnd: true },
+        data: immediately
+          ? { status: 'CANCELED', endedAt: now, canceledAt: now }
+          : { cancelAtPeriodEnd: true },
       });
     }
-    await writeAuditLog(this.db, { ...actor, action: 'subscription.cancel', targetType: 'subscription', targetId: id, metadata: { immediately } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'subscription.cancel',
+      targetType: 'subscription',
+      targetId: id,
+      metadata: { immediately },
+    });
   }
 
   async resyncSubscription(id: string, actor: ActorContext): Promise<void> {
     const subscription = await this.db.subscription.findUnique({ where: { id } });
-    if (!subscription?.stripeSubscriptionId) throw badRequest('not_stripe', 'Only Stripe subscriptions can be re-synchronised');
+    if (!subscription?.stripeSubscriptionId)
+      throw badRequest('not_stripe', 'Only Stripe subscriptions can be re-synchronised');
     if (!this.sync) throw serviceUnavailable('billing_unavailable', 'Stripe is not configured');
     await this.sync.syncById(subscription.stripeSubscriptionId);
-    await writeAuditLog(this.db, { ...actor, action: 'subscription.resync', targetType: 'subscription', targetId: id });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'subscription.resync',
+      targetType: 'subscription',
+      targetId: id,
+    });
   }
 
-  async listPayments(query: { page: number; pageSize: number; search?: string }): Promise<Paginated<PaymentDto>> {
+  async listPayments(query: {
+    page: number;
+    pageSize: number;
+    search?: string;
+  }): Promise<Paginated<PaymentDto>> {
     const where: Prisma.PaymentWhereInput = query.search
       ? { user: { email: { contains: query.search, mode: 'insensitive' } } }
       : {};
     const [rows, total] = await Promise.all([
-      this.db.payment.findMany({ where, orderBy: { createdAt: 'desc' }, ...pageArgs(query), include: { user: { select: { email: true } } } }),
+      this.db.payment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        ...pageArgs(query),
+        include: { user: { select: { email: true } } },
+      }),
       this.db.payment.count({ where }),
     ]);
     return paginated(
@@ -113,7 +149,11 @@ export class AdminBillingService {
   async listPlans(): Promise<AdminPlanDto[]> {
     const [plans, counts] = await Promise.all([
       this.db.plan.findMany({ orderBy: [{ sortOrder: 'asc' }, { priceCents: 'asc' }] }),
-      this.db.subscription.groupBy({ by: ['planId'], where: { status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } }, _count: { _all: true } }),
+      this.db.subscription.groupBy({
+        by: ['planId'],
+        where: { status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } },
+        _count: { _all: true },
+      }),
     ]);
     const byPlan = new Map(counts.map((row) => [row.planId, row._count._all]));
     return plans.map((plan) => toAdminPlanDto(plan, byPlan.get(plan.id) ?? 0));
@@ -123,13 +163,23 @@ export class AdminBillingService {
     try {
       const { trafficLimitBytes, ...rest } = input;
       let plan = await this.db.plan.create({
-        data: { ...rest, trafficLimitBytes: trafficLimitBytes === null ? null : BigInt(trafficLimitBytes) },
+        data: {
+          ...rest,
+          trafficLimitBytes: trafficLimitBytes === null ? null : BigInt(trafficLimitBytes),
+        },
       });
       plan = await this.catalog.syncPlan(plan);
-      await writeAuditLog(this.db, { ...actor, action: 'plan.create', targetType: 'plan', targetId: plan.id, metadata: { slug: plan.slug } });
+      await writeAuditLog(this.db, {
+        ...actor,
+        action: 'plan.create',
+        targetType: 'plan',
+        targetId: plan.id,
+        metadata: { slug: plan.slug },
+      });
       return toAdminPlanDto(plan, 0);
     } catch (error) {
-      if (isUniqueViolation(error, 'slug')) throw conflict('plan_exists', 'A plan with this slug already exists');
+      if (isUniqueViolation(error, 'slug'))
+        throw conflict('plan_exists', 'A plan with this slug already exists');
       throw error;
     }
   }
@@ -137,27 +187,46 @@ export class AdminBillingService {
   async updatePlan(id: string, input: PlanUpdateInput, actor: ActorContext): Promise<AdminPlanDto> {
     const existing = await this.db.plan.findUnique({ where: { id } });
     if (!existing) throw notFound('Plan');
-    const priceChanged = PRICE_FIELDS.some((field) => input[field] !== undefined && input[field] !== existing[field]);
+    const priceChanged = PRICE_FIELDS.some(
+      (field) => input[field] !== undefined && input[field] !== existing[field],
+    );
     const { trafficLimitBytes, ...rest } = input;
     let plan = await this.db.plan.update({
       where: { id },
       data: {
         ...rest,
-        ...(trafficLimitBytes !== undefined ? { trafficLimitBytes: trafficLimitBytes === null ? null : BigInt(trafficLimitBytes) } : {}),
+        ...(trafficLimitBytes !== undefined
+          ? { trafficLimitBytes: trafficLimitBytes === null ? null : BigInt(trafficLimitBytes) }
+          : {}),
       },
     });
     plan = await this.catalog.syncPlan(plan, { priceChanged });
-    await writeAuditLog(this.db, { ...actor, action: 'plan.update', targetType: 'plan', targetId: id, metadata: { ...input, priceChanged } });
-    const subscribers = await this.db.subscription.count({ where: { planId: id, status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'plan.update',
+      targetType: 'plan',
+      targetId: id,
+      metadata: { ...input, priceChanged },
+    });
+    const subscribers = await this.db.subscription.count({
+      where: { planId: id, status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } },
+    });
     return toAdminPlanDto(plan, subscribers);
   }
 
   /** Plans with history are deactivated instead of deleted. */
   async deletePlan(id: string, actor: ActorContext): Promise<void> {
     const references = await this.db.subscription.count({ where: { planId: id } });
-    if (references > 0) await this.db.plan.update({ where: { id }, data: { isActive: false, isPublic: false } });
+    if (references > 0)
+      await this.db.plan.update({ where: { id }, data: { isActive: false, isPublic: false } });
     else await this.db.plan.delete({ where: { id } });
-    await writeAuditLog(this.db, { ...actor, action: 'plan.delete', targetType: 'plan', targetId: id, metadata: { softDeleted: references > 0 } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'plan.delete',
+      targetType: 'plan',
+      targetId: id,
+      metadata: { softDeleted: references > 0 },
+    });
   }
 
   // ── Coupons ──────────────────────────────────────────────
@@ -185,10 +254,17 @@ export class AdminBillingService {
         },
       });
       coupon = await this.catalog.syncCoupon(coupon);
-      await writeAuditLog(this.db, { ...actor, action: 'coupon.create', targetType: 'coupon', targetId: coupon.id, metadata: { code: coupon.code } });
+      await writeAuditLog(this.db, {
+        ...actor,
+        action: 'coupon.create',
+        targetType: 'coupon',
+        targetId: coupon.id,
+        metadata: { code: coupon.code },
+      });
       return toCouponDto(coupon);
     } catch (error) {
-      if (isUniqueViolation(error, 'code')) throw conflict('coupon_exists', 'A coupon with this code already exists');
+      if (isUniqueViolation(error, 'code'))
+        throw conflict('coupon_exists', 'A coupon with this code already exists');
       throw error;
     }
   }
@@ -200,7 +276,13 @@ export class AdminBillingService {
   ): Promise<CouponDto> {
     const coupon = await this.db.coupon.update({ where: { id }, data: input });
     if (input.isActive !== undefined) await this.catalog.setCouponActive(coupon, input.isActive);
-    await writeAuditLog(this.db, { ...actor, action: 'coupon.update', targetType: 'coupon', targetId: id, metadata: input as Record<string, unknown> });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'coupon.update',
+      targetType: 'coupon',
+      targetId: id,
+      metadata: input as Record<string, unknown>,
+    });
     return toCouponDto(coupon);
   }
 }

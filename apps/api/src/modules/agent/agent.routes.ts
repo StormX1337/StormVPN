@@ -12,8 +12,12 @@ export async function agentRoutes(fastify: FastifyInstance): Promise<void> {
 
   app.post(
     '/register',
-    { config: { csrf: false, rateLimit: { max: 10, timeWindow: '1 minute' } }, schema: { body: agentRegisterSchema } },
-    async (request, reply) => reply.status(201).send(await agent.register(request.body, clientIp(request))),
+    {
+      config: { csrf: false, rateLimit: { max: 10, timeWindow: '1 minute' } },
+      schema: { body: agentRegisterSchema },
+    },
+    async (request, reply) =>
+      reply.status(201).send(await agent.register(request.body, clientIp(request))),
   );
 
   await app.register(async (authenticated) => {
@@ -34,6 +38,8 @@ export async function agentRoutes(fastify: FastifyInstance): Promise<void> {
       return config;
     });
 
-    routes.post('/rotate-token', { config: nodeConfig }, async (request) => agent.rotateToken(nodeOf(request).nodeId));
+    routes.post('/rotate-token', { config: nodeConfig }, async (request) =>
+      agent.rotateToken(nodeOf(request).nodeId),
+    );
   });
 }

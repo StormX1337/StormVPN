@@ -16,7 +16,17 @@ import {
   Logo,
   ThemeToggle,
 } from '@stormvpn/ui';
-import { CreditCard, Gauge, LogOut, Menu, MonitorSmartphone, Server, Shield, User, Waypoints } from 'lucide-react';
+import {
+  CreditCard,
+  Gauge,
+  LogOut,
+  Menu,
+  MonitorSmartphone,
+  Server,
+  Shield,
+  User,
+  Waypoints,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -47,7 +57,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+              'text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
               active && 'bg-accent text-foreground shadow-[inset_2px_0_0_var(--primary)]',
             )}
           >
@@ -69,7 +79,10 @@ function ConnectionPill() {
   const { data } = useVpnStatus();
   const connected = data?.connected ?? false;
   return (
-    <Link href="/connection" className="hidden items-center gap-2 rounded-full border bg-card/60 px-3 py-1 text-xs font-medium sm:flex">
+    <Link
+      href="/connection"
+      className="bg-card/60 hidden items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium sm:flex"
+    >
       <LiveDot tone={connected ? 'good' : 'critical'} />
       {connected ? `Protected · ${data?.connection?.server.name}` : 'Not protected'}
     </Link>
@@ -83,19 +96,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 border-r bg-sidebar px-4 py-5 lg:flex">
+      <aside className="bg-sidebar sticky top-0 hidden h-dvh w-64 shrink-0 flex-col gap-6 border-r px-4 py-5 lg:flex">
         <Link href="/dashboard" className="px-2">
           <Logo />
         </Link>
         <NavLinks />
-        <div className="mt-auto rounded-xl border bg-gradient-to-br from-sky-500/10 to-indigo-500/10 p-4 text-xs text-muted-foreground">
-          <Shield className="mb-2 size-4 text-foreground" />
+        <div className="text-muted-foreground mt-auto rounded-xl border bg-gradient-to-br from-sky-500/10 to-indigo-500/10 p-4 text-xs">
+          <Shield className="text-foreground mb-2 size-4" />
           WireGuard® with per-device keys generated on your device.
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur lg:px-8">
-          <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation" onClick={() => setOpen(true)}>
+        <header className="bg-background/80 sticky top-0 z-30 flex h-14 items-center gap-3 border-b px-4 backdrop-blur lg:px-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Open navigation"
+            onClick={() => setOpen(true)}
+          >
             <Menu />
           </Button>
           <Link href="/dashboard" className="lg:hidden">

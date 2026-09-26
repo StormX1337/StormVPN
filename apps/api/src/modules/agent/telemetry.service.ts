@@ -44,7 +44,14 @@ export class TelemetryService {
     const rx: bigint[] = [];
     const tx: bigint[] = [];
     const trafficByUser = new Map<string, { rx: bigint; tx: bigint }>();
-    const alive: { peerId: string; userId: string; deviceId: string; handshake: Date; rx: bigint; tx: bigint }[] = [];
+    const alive: {
+      peerId: string;
+      userId: string;
+      deviceId: string;
+      handshake: Date;
+      rx: bigint;
+      tx: bigint;
+    }[] = [];
 
     for (const stat of stats) {
       const peer = byKey.get(stat.publicKey);
@@ -64,7 +71,14 @@ export class TelemetryService {
         trafficByUser.set(peer.userId, total);
       }
       if (handshake && now.getTime() - handshake.getTime() < HANDSHAKE_ALIVE_SECONDS * 1000) {
-        alive.push({ peerId: peer.id, userId: peer.userId, deviceId: peer.deviceId, handshake, rx: rxDelta, tx: txDelta });
+        alive.push({
+          peerId: peer.id,
+          userId: peer.userId,
+          deviceId: peer.deviceId,
+          handshake,
+          rx: rxDelta,
+          tx: txDelta,
+        });
       }
     }
     if (peerIds.length === 0) {
@@ -86,7 +100,11 @@ export class TelemetryService {
     return { activeConnections: await this.countActive(serverId), connected, trafficRows };
   }
 
-  private async recordTraffic(serverId: string, totals: Map<string, { rx: bigint; tx: bigint }>, now: Date): Promise<number> {
+  private async recordTraffic(
+    serverId: string,
+    totals: Map<string, { rx: bigint; tx: bigint }>,
+    now: Date,
+  ): Promise<number> {
     if (totals.size === 0) return 0;
     const day = startOfUtcDay(now);
     const users = [...totals.keys()];
@@ -105,7 +123,14 @@ export class TelemetryService {
 
   private async updateConnections(
     serverId: string,
-    alive: { peerId: string; userId: string; deviceId: string; handshake: Date; rx: bigint; tx: bigint }[],
+    alive: {
+      peerId: string;
+      userId: string;
+      deviceId: string;
+      handshake: Date;
+      rx: bigint;
+      tx: bigint;
+    }[],
   ): Promise<number> {
     if (alive.length === 0) return 0;
     const peerIds = alive.map((entry) => entry.peerId);
@@ -156,19 +181,28 @@ export class TelemetryService {
 
     // Push state changes (newly connected sessions) to the owners' dashboards.
     const changed = [
-      ...live.filter((connection) => connection.status === 'CONNECTING').map((connection) => connection.id),
+      ...live
+        .filter((connection) => connection.status === 'CONNECTING')
+        .map((connection) => connection.id),
     ];
     const changedRows = await this.db.vPNConnection.findMany({
       where: {
         OR: [
           { id: { in: changed } },
-          { peerId: { in: fresh.map((entry) => entry.peerId) }, status: 'CONNECTED', source: 'CONFIG' },
+          {
+            peerId: { in: fresh.map((entry) => entry.peerId) },
+            status: 'CONNECTED',
+            source: 'CONFIG',
+          },
         ],
       },
       include: connectionInclude,
     });
     for (const row of changedRows) {
-      await this.events.toUser(row.userId, { type: 'connection.updated', data: toConnectionDto(row) });
+      await this.events.toUser(row.userId, {
+        type: 'connection.updated',
+        data: toConnectionDto(row),
+      });
     }
     return changedRows.length;
   }
@@ -177,4 +211,3 @@ export class TelemetryService {
     return this.db.vPNConnection.count({ where: { serverId, status: 'CONNECTED' } });
   }
 }
-

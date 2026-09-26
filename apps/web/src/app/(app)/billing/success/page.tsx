@@ -14,15 +14,20 @@ export default function BillingSuccessPage() {
   useEffect(() => {
     // Stripe webhooks usually arrive within seconds – poll until the plan is active.
     if (active) return;
-    const timer = setInterval(() => void client.invalidateQueries({ queryKey: keys.subscription }), 2000);
+    const timer = setInterval(
+      () => void client.invalidateQueries({ queryKey: keys.subscription }),
+      2000,
+    );
     return () => clearInterval(timer);
   }, [active, client]);
   return (
     <Card className="mx-auto mt-10 max-w-lg items-center gap-4 p-8 text-center">
-      <CheckCircle2 className="size-12 text-status-good" />
+      <CheckCircle2 className="text-status-good size-12" />
       <h1 className="text-2xl font-semibold">Thank you!</h1>
       <p className="text-muted-foreground">
-        {active ? `Your ${data?.subscription?.plan.name} plan is active.` : 'We are confirming your payment. This usually takes a few seconds…'}
+        {active
+          ? `Your ${data?.subscription?.plan.name} plan is active.`
+          : 'We are confirming your payment. This usually takes a few seconds…'}
       </p>
       <Button asChild variant="brand">
         <Link href="/dashboard">Connect now</Link>

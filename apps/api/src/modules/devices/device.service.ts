@@ -37,7 +37,8 @@ export class DeviceService {
 
   async create(userId: string, input: CreateDeviceInput, ipAddress: string): Promise<DeviceDto> {
     const entitlements = await getEntitlements(this.db, userId);
-    if (!entitlements) throw paymentRequired('subscription_required', 'An active subscription is required');
+    if (!entitlements)
+      throw paymentRequired('subscription_required', 'An active subscription is required');
     const count = await this.db.device.count({ where: { userId } });
     if (count >= entitlements.maxDevices) {
       await recordSecurityEvent(this.db, {
@@ -46,10 +47,18 @@ export class DeviceService {
         ipAddress,
         metadata: { limit: entitlements.maxDevices },
       });
-      throw forbidden('device_limit_reached', `Your plan allows ${entitlements.maxDevices} device(s). Remove one or upgrade.`);
+      throw forbidden(
+        'device_limit_reached',
+        `Your plan allows ${entitlements.maxDevices} device(s). Remove one or upgrade.`,
+      );
     }
     const device = await this.db.device.create({
-      data: { userId, name: input.name, platform: input.platform, clientVersion: input.clientVersion ?? null },
+      data: {
+        userId,
+        name: input.name,
+        platform: input.platform,
+        clientVersion: input.clientVersion ?? null,
+      },
     });
     return {
       id: device.id,
@@ -64,7 +73,10 @@ export class DeviceService {
   }
 
   async rename(userId: string, deviceId: string, name: string): Promise<void> {
-    const result = await this.db.device.updateMany({ where: { id: deviceId, userId }, data: { name } });
+    const result = await this.db.device.updateMany({
+      where: { id: deviceId, userId },
+      data: { name },
+    });
     if (result.count === 0) throw notFound('Device');
   }
 
@@ -78,15 +90,25 @@ export class DeviceService {
     await this.db.$transaction(async (tx) => {
       await tx.vPNConnection.updateMany({
         where: { deviceId, status: { in: ['CONNECTING', 'CONNECTED'] } },
-        data: { status: 'DISCONNECTED', endedAt: this.clock.now(), disconnectReason: 'device_removed' },
+        data: {
+          status: 'DISCONNECTED',
+          endedAt: this.clock.now(),
+          disconnectReason: 'device_removed',
+        },
       });
       await tx.device.delete({ where: { id: deviceId } });
-      await bumpPeerRevision(tx, device.peers.map((peer) => peer.serverId));
+      await bumpPeerRevision(
+        tx,
+        device.peers.map((peer) => peer.serverId),
+      );
     });
   }
 
   async listPeers(userId: string, deviceId: string): Promise<PeerDto[]> {
-    const device = await this.db.device.findFirst({ where: { id: deviceId, userId }, select: { id: true } });
+    const device = await this.db.device.findFirst({
+      where: { id: deviceId, userId },
+      select: { id: true },
+    });
     if (!device) throw notFound('Device');
     const peers = await this.db.vPNPeer.findMany({
       where: { deviceId },

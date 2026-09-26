@@ -25,7 +25,10 @@ export class TokenService {
   private readonly secret: Uint8Array;
 
   constructor(
-    private readonly env: Pick<ApiEnv, 'JWT_ACCESS_SECRET' | 'JWT_ISSUER' | 'JWT_AUDIENCE' | 'ACCESS_TOKEN_TTL_SECONDS'>,
+    private readonly env: Pick<
+      ApiEnv,
+      'JWT_ACCESS_SECRET' | 'JWT_ISSUER' | 'JWT_AUDIENCE' | 'ACCESS_TOKEN_TTL_SECONDS'
+    >,
     private readonly clock: Clock,
   ) {
     this.secret = new TextEncoder().encode(env.JWT_ACCESS_SECRET);
@@ -54,12 +57,17 @@ export class TokenService {
         algorithms: ['HS256'],
         currentDate: this.clock.now(),
       });
-      if (payload.typ !== 'access' || typeof payload.sub !== 'string' || typeof payload.sid !== 'string') {
+      if (
+        payload.typ !== 'access' ||
+        typeof payload.sub !== 'string' ||
+        typeof payload.sid !== 'string'
+      ) {
         throw unauthorized('invalid_token', 'Invalid access token');
       }
       return { userId: payload.sub, sessionId: payload.sid, role: payload.role as Role };
     } catch (error) {
-      if (error instanceof joseErrors.JWTExpired) throw unauthorized('token_expired', 'Access token expired');
+      if (error instanceof joseErrors.JWTExpired)
+        throw unauthorized('token_expired', 'Access token expired');
       if (error instanceof Error && error.name === 'AppError') throw error;
       throw unauthorized('invalid_token', 'Invalid access token');
     }

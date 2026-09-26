@@ -72,7 +72,10 @@ export class StripeWebhookService {
         where: { id: event.id },
         data: { status: 'FAILED', lastError: message.slice(0, 2000), payload: event as never },
       });
-      this.logger.error({ err: error, eventId: event.id, type: event.type }, 'stripe webhook processing failed');
+      this.logger.error(
+        { err: error, eventId: event.id, type: event.type },
+        'stripe webhook processing failed',
+      );
       throw error;
     }
   }
@@ -84,7 +87,9 @@ export class StripeWebhookService {
         const subscription = object.subscription as string | { id: string } | null;
         if (object.mode !== 'subscription' || !subscription) return false;
         const id = typeof subscription === 'string' ? subscription : subscription.id;
-        await this.sync.syncById(id, { userId: (object.client_reference_id as string | null) ?? null });
+        await this.sync.syncById(id, {
+          userId: (object.client_reference_id as string | null) ?? null,
+        });
         return true;
       }
       case 'customer.subscription.created':
@@ -112,14 +117,20 @@ export class StripeWebhookService {
         await this.recordInvoice(normalizeInvoice(object), null);
         return true;
       case 'customer.deleted':
-        await this.db.user.updateMany({ where: { stripeCustomerId: object.id as string }, data: { stripeCustomerId: null } });
+        await this.db.user.updateMany({
+          where: { stripeCustomerId: object.id as string },
+          data: { stripeCustomerId: null },
+        });
         return true;
       default:
         return false;
     }
   }
 
-  private async recordInvoice(invoice: NormalizedInvoice, paymentOutcome: 'SUCCEEDED' | 'FAILED' | null): Promise<void> {
+  private async recordInvoice(
+    invoice: NormalizedInvoice,
+    paymentOutcome: 'SUCCEEDED' | 'FAILED' | null,
+  ): Promise<void> {
     if (!invoice.customerId) return;
     const user = await this.db.user.findUnique({ where: { stripeCustomerId: invoice.customerId } });
     if (!user) {
@@ -129,7 +140,9 @@ export class StripeWebhookService {
     // Make sure the subscription (renewal period, status) is current before linking.
     if (invoice.subscriptionId && paymentOutcome) await this.sync.syncById(invoice.subscriptionId);
     const subscription = invoice.subscriptionId
-      ? await this.db.subscription.findUnique({ where: { stripeSubscriptionId: invoice.subscriptionId } })
+      ? await this.db.subscription.findUnique({
+          where: { stripeSubscriptionId: invoice.subscriptionId },
+        })
       : null;
 
     const data = {
@@ -163,7 +176,8 @@ export class StripeWebhookService {
       currency: invoice.currency,
       status: paymentOutcome,
       provider: 'STRIPE' as const,
-      failureReason: paymentOutcome === 'FAILED' ? (invoice.failureMessage ?? 'Payment failed') : null,
+      failureReason:
+        paymentOutcome === 'FAILED' ? (invoice.failureMessage ?? 'Payment failed') : null,
       paidAt: paymentOutcome === 'SUCCEEDED' ? (invoice.paidAt ?? this.clock.now()) : null,
     };
     await this.db.payment.upsert({
@@ -175,12 +189,19 @@ export class StripeWebhookService {
       await this.mail.send({
         template: 'payment-failed',
         to: user.email,
-        data: { amount: (invoice.amountDue / 100).toFixed(2), currency: invoice.currency.toUpperCase(), invoiceUrl: invoice.hostedInvoiceUrl },
+        data: {
+          amount: (invoice.amountDue / 100).toFixed(2),
+          currency: invoice.currency.toUpperCase(),
+          invoiceUrl: invoice.hostedInvoiceUrl,
+        },
       });
     }
   }
 
-  private async notifyTrialEnding(stripeSubscriptionId: string, trialEnd: number | null): Promise<void> {
+  private async notifyTrialEnding(
+    stripeSubscriptionId: string,
+    trialEnd: number | null,
+  ): Promise<void> {
     const subscription = await this.db.subscription.findUnique({
       where: { stripeSubscriptionId },
       include: { user: { select: { email: true } }, plan: { select: { name: true } } },
@@ -189,7 +210,10 @@ export class StripeWebhookService {
     await this.mail.send({
       template: 'trial-ending',
       to: subscription.user.email,
-      data: { plan: subscription.plan.name, trialEnd: trialEnd ? new Date(trialEnd * 1000).toISOString() : null },
+      data: {
+        plan: subscription.plan.name,
+        trialEnd: trialEnd ? new Date(trialEnd * 1000).toISOString() : null,
+      },
     });
   }
 }

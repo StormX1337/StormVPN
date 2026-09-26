@@ -44,7 +44,11 @@ export async function runAbuseScan(ctx: JobContext): Promise<JobResult> {
   });
   const flags = await ctx.db.riskFlag.groupBy({
     by: ['userId'],
-    where: { resolvedAt: null, userId: { not: null }, OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] },
+    where: {
+      resolvedAt: null,
+      userId: { not: null },
+      OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+    },
     _sum: { score: true },
   });
   const connections = await ctx.db.vPNConnection.groupBy({
@@ -61,7 +65,13 @@ export async function runAbuseScan(ctx: JobContext): Promise<JobResult> {
   const get = (userId: string): RiskSignals => {
     let entry = signals.get(userId);
     if (!entry) {
-      entry = { eventCounts: {}, flagScore: 0, concurrentConnections: 0, maxSessions: Infinity, distinctServersLastHour: 0 };
+      entry = {
+        eventCounts: {},
+        flagScore: 0,
+        concurrentConnections: 0,
+        maxSessions: Infinity,
+        distinctServersLastHour: 0,
+      };
       signals.set(userId, entry);
     }
     return entry;
@@ -106,14 +116,25 @@ export async function runAbuseScan(ctx: JobContext): Promise<JobResult> {
         userId: user.id,
         type: 'ABUSE_SUSPECTED',
         severity: 'CRITICAL',
-        metadata: { score, threshold: settings.abuseAutoSuspendScore, signals: { ...signal, maxSessions: signal.maxSessions } },
+        metadata: {
+          score,
+          threshold: settings.abuseAutoSuspendScore,
+          signals: { ...signal, maxSessions: signal.maxSessions },
+        },
       });
       await suspendUser(ctx.db, ctx.redis, user.id, 'Automated abuse protection', {
         actorId: null,
         actorType: 'SYSTEM',
       });
-      await ctx.mail?.send({ template: 'account-suspended', to: user.email, data: { reason: 'automated abuse protection' } });
-      await ctx.events?.toUser(user.id, { type: 'account.suspended', data: { reason: 'Automated abuse protection' } });
+      await ctx.mail?.send({
+        template: 'account-suspended',
+        to: user.email,
+        data: { reason: 'automated abuse protection' },
+      });
+      await ctx.events?.toUser(user.id, {
+        type: 'account.suspended',
+        data: { reason: 'Automated abuse protection' },
+      });
       suspended++;
       ctx.logger.warn({ userId: user.id, score }, 'account automatically suspended');
     }

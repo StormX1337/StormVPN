@@ -1,8 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { computeRiskScore, computeServerLoad, isServerAllowed, startOfUtcMonth, uuidv7 } from '../index';
+import {
+  computeRiskScore,
+  computeServerLoad,
+  isServerAllowed,
+  startOfUtcMonth,
+  uuidv7,
+} from '../index';
 
 describe('computeServerLoad', () => {
-  const base = { activeConnections: 0, capacity: 500, cpuPercent: 0, rxBps: 0, txBps: 0, bandwidthCapacityMbps: 1000 };
+  const base = {
+    activeConnections: 0,
+    capacity: 500,
+    cpuPercent: 0,
+    rxBps: 0,
+    txBps: 0,
+    bandwidthCapacityMbps: 1000,
+  };
 
   it('uses the most constrained resource', () => {
     expect(computeServerLoad({ ...base, activeConnections: 155 })).toBe(31);
@@ -51,6 +64,8 @@ describe('helpers', () => {
   });
 
   it('computes the UTC month start', () => {
-    expect(startOfUtcMonth(new Date('2026-09-25T23:59:00Z')).toISOString()).toBe('2026-09-01T00:00:00.000Z');
+    expect(startOfUtcMonth(new Date('2026-09-25T23:59:00Z')).toISOString()).toBe(
+      '2026-09-01T00:00:00.000Z',
+    );
   });
 });

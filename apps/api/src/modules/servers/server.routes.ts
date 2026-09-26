@@ -24,16 +24,28 @@ export async function serverRoutes(fastify: FastifyInstance): Promise<void> {
     '/recommended',
     {
       schema: {
-        querystring: z.object({ country: countryCodeSchema.optional(), region: z.enum(Region).optional() }),
+        querystring: z.object({
+          country: countryCodeSchema.optional(),
+          region: z.enum(Region).optional(),
+        }),
       },
     },
     async (request) => {
       const { userId } = authOf(request);
       const entitlements = await getEntitlements(app.deps.db, userId);
-      if (!entitlements) throw paymentRequired('subscription_required', 'An active subscription is required');
-      const outcome = await selection.resolve(userId, entitlements, request.query, edgeCountry(request));
+      if (!entitlements)
+        throw paymentRequired('subscription_required', 'An active subscription is required');
+      const outcome = await selection.resolve(
+        userId,
+        entitlements,
+        request.query,
+        edgeCountry(request),
+      );
       return {
-        server: toServerDto(outcome.server, catalog.status(outcome.server), { isFavorite: false, allowed: true }),
+        server: toServerDto(outcome.server, catalog.status(outcome.server), {
+          isFavorite: false,
+          allowed: true,
+        }),
         score: outcome.score,
         reason: outcome.reason,
       };

@@ -41,7 +41,10 @@ export function LoginForm() {
     mutationFn: (input: { email: string; password: string }) => api.auth.login(input),
     onSuccess: (result) => ('mfaRequired' in result ? setMfaToken(result.mfaToken) : finish()),
   });
-  const mfa = useMutation({ mutationFn: (code: string) => api.auth.loginMfa(mfaToken!, code), onSuccess: finish });
+  const mfa = useMutation({
+    mutationFn: (code: string) => api.auth.loginMfa(mfaToken!, code),
+    onSuccess: finish,
+  });
 
   if (mfaToken) {
     return (
@@ -58,16 +61,29 @@ export function LoginForm() {
       >
         <div className="space-y-1">
           <h1 className="text-xl font-semibold">Two-factor authentication</h1>
-          <p className="text-sm text-muted-foreground">Enter the 6-digit code from your authenticator app or a backup code.</p>
+          <p className="text-muted-foreground text-sm">
+            Enter the 6-digit code from your authenticator app or a backup code.
+          </p>
         </div>
         <FormError error={mfa.error} />
         <Field label="Verification code" htmlFor="code" error={fieldErrors.code}>
-          <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" autoFocus placeholder="123456" />
+          <Input
+            id="code"
+            name="code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            placeholder="123456"
+          />
         </Field>
         <Button type="submit" className="w-full" disabled={mfa.isPending}>
           {mfa.isPending ? <Spinner /> : null} Verify
         </Button>
-        <button type="button" className="w-full text-center text-sm text-muted-foreground hover:text-foreground" onClick={() => setMfaToken(null)}>
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground w-full text-center text-sm"
+          onClick={() => setMfaToken(null)}
+        >
           Use a different account
         </button>
       </form>
@@ -82,7 +98,11 @@ export function LoginForm() {
         event.preventDefault();
         const parsed = loginSchema.safeParse(formValues(event));
         if (!parsed.success) {
-          return setFieldErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+          return setFieldErrors(
+            Object.fromEntries(
+              parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]),
+            ),
+          );
         }
         setFieldErrors({});
         login.mutate(parsed.data);
@@ -90,7 +110,7 @@ export function LoginForm() {
     >
       <div className="space-y-1">
         <h1 className="text-xl font-semibold">Welcome back</h1>
-        <p className="text-sm text-muted-foreground">Sign in to manage your StormVPN protection.</p>
+        <p className="text-muted-foreground text-sm">Sign in to manage your StormVPN protection.</p>
       </div>
       {params.get('suspended') ? (
         <Alert variant="destructive">
@@ -102,7 +122,13 @@ export function LoginForm() {
         <Input id="email" name="email" type="email" autoComplete="email" required autoFocus />
       </Field>
       <Field label="Password" htmlFor="password" error={fieldErrors.password}>
-        <Input id="password" name="password" type="password" autoComplete="current-password" required />
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+        />
       </Field>
       <div className="flex justify-end text-sm">
         <Link href="/forgot-password" className="text-muted-foreground hover:text-foreground">
@@ -112,9 +138,9 @@ export function LoginForm() {
       <Button type="submit" variant="brand" className="w-full" disabled={login.isPending}>
         {login.isPending ? <Spinner /> : null} Sign in
       </Button>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-center text-sm">
         New to StormVPN?{' '}
-        <Link href="/register" className="font-medium text-foreground hover:underline">
+        <Link href="/register" className="text-foreground font-medium hover:underline">
           Create an account
         </Link>
       </p>
@@ -140,9 +166,17 @@ export function RegisterForm() {
       onSubmit={(event) => {
         event.preventDefault();
         const values = formValues(event);
-        const parsed = registerSchema.safeParse({ ...values, acceptTerms: values.acceptTerms === 'on', name: values.name || undefined });
+        const parsed = registerSchema.safeParse({
+          ...values,
+          acceptTerms: values.acceptTerms === 'on',
+          name: values.name || undefined,
+        });
         if (!parsed.success) {
-          return setFieldErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+          return setFieldErrors(
+            Object.fromEntries(
+              parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]),
+            ),
+          );
         }
         setFieldErrors({});
         register.mutate(parsed.data);
@@ -150,7 +184,7 @@ export function RegisterForm() {
     >
       <div className="space-y-1">
         <h1 className="text-xl font-semibold">Create your account</h1>
-        <p className="text-sm text-muted-foreground">Start free – upgrade anytime.</p>
+        <p className="text-muted-foreground text-sm">Start free – upgrade anytime.</p>
       </div>
       <FormError error={register.error} />
       <Field label="Name (optional)" htmlFor="name" error={fieldErrors.name}>
@@ -159,22 +193,40 @@ export function RegisterForm() {
       <Field label="Email" htmlFor="email" error={fieldErrors.email}>
         <Input id="email" name="email" type="email" autoComplete="email" required />
       </Field>
-      <Field label="Password" htmlFor="password" error={fieldErrors.password} hint="At least 12 characters – a passphrase works great.">
-        <Input id="password" name="password" type="password" autoComplete="new-password" required minLength={12} />
+      <Field
+        label="Password"
+        htmlFor="password"
+        error={fieldErrors.password}
+        hint="At least 12 characters – a passphrase works great."
+      >
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          autoComplete="new-password"
+          required
+          minLength={12}
+        />
       </Field>
-      <label className="flex items-start gap-2 text-sm text-muted-foreground">
-        <input type="checkbox" name="acceptTerms" className="mt-0.5 size-4 accent-[var(--primary)]" />
+      <label className="text-muted-foreground flex items-start gap-2 text-sm">
+        <input
+          type="checkbox"
+          name="acceptTerms"
+          className="mt-0.5 size-4 accent-[var(--primary)]"
+        />
         <span>
           I accept the terms of service and acceptable use policy.
-          {fieldErrors.acceptTerms ? <span className="block text-destructive">{fieldErrors.acceptTerms}</span> : null}
+          {fieldErrors.acceptTerms ? (
+            <span className="text-destructive block">{fieldErrors.acceptTerms}</span>
+          ) : null}
         </span>
       </label>
       <Button type="submit" variant="brand" className="w-full" disabled={register.isPending}>
         {register.isPending ? <Spinner /> : null} Create account
       </Button>
-      <p className="text-center text-sm text-muted-foreground">
+      <p className="text-muted-foreground text-center text-sm">
         Already have an account?{' '}
-        <Link href="/login" className="font-medium text-foreground hover:underline">
+        <Link href="/login" className="text-foreground font-medium hover:underline">
           Sign in
         </Link>
       </p>
@@ -200,14 +252,21 @@ export function VerifyEmail() {
     }
   };
 
-  if (!token) return <p className="text-sm text-muted-foreground">This verification link is incomplete. Request a new email from your dashboard.</p>;
+  if (!token)
+    return (
+      <p className="text-muted-foreground text-sm">
+        This verification link is incomplete. Request a new email from your dashboard.
+      </p>
+    );
   return (
     <div className="space-y-5 text-center">
       {state === 'done' ? (
         <>
-          <CheckCircle2 className="mx-auto size-10 text-status-good" />
+          <CheckCircle2 className="text-status-good mx-auto size-10" />
           <h1 className="text-xl font-semibold">Email confirmed</h1>
-          <p className="text-sm text-muted-foreground">Your account is active. Choose a plan and connect your first device.</p>
+          <p className="text-muted-foreground text-sm">
+            Your account is active. Choose a plan and connect your first device.
+          </p>
           <Button asChild variant="brand" className="w-full">
             <Link href="/dashboard">Go to dashboard</Link>
           </Button>
@@ -215,9 +274,16 @@ export function VerifyEmail() {
       ) : (
         <>
           <h1 className="text-xl font-semibold">Confirm your email</h1>
-          <p className="text-sm text-muted-foreground">Click below to confirm your email address.</p>
+          <p className="text-muted-foreground text-sm">
+            Click below to confirm your email address.
+          </p>
           <FormError error={state === 'error' ? error : null} />
-          <Button variant="brand" className="w-full" onClick={() => void verify()} disabled={state === 'pending'}>
+          <Button
+            variant="brand"
+            className="w-full"
+            onClick={() => void verify()}
+            disabled={state === 'pending'}
+          >
             {state === 'pending' ? <Spinner /> : null} Confirm email
           </Button>
         </>
@@ -231,9 +297,12 @@ export function ForgotPasswordForm() {
   if (request.isSuccess) {
     return (
       <div className="space-y-3 text-center">
-        <CheckCircle2 className="mx-auto size-10 text-status-good" />
+        <CheckCircle2 className="text-status-good mx-auto size-10" />
         <h1 className="text-xl font-semibold">Check your inbox</h1>
-        <p className="text-sm text-muted-foreground">If an account exists for this email, we sent a link to reset the password. It expires in 1 hour.</p>
+        <p className="text-muted-foreground text-sm">
+          If an account exists for this email, we sent a link to reset the password. It expires in 1
+          hour.
+        </p>
       </div>
     );
   }
@@ -247,7 +316,7 @@ export function ForgotPasswordForm() {
     >
       <div className="space-y-1">
         <h1 className="text-xl font-semibold">Reset password</h1>
-        <p className="text-sm text-muted-foreground">We will email you a secure reset link.</p>
+        <p className="text-muted-foreground text-sm">We will email you a secure reset link.</p>
       </div>
       <FormError error={request.error} />
       <Field label="Email" htmlFor="email">
@@ -256,7 +325,10 @@ export function ForgotPasswordForm() {
       <Button type="submit" className="w-full" disabled={request.isPending}>
         Send reset link
       </Button>
-      <Link href="/login" className="block text-center text-sm text-muted-foreground hover:text-foreground">
+      <Link
+        href="/login"
+        className="text-muted-foreground hover:text-foreground block text-center text-sm"
+      >
         Back to sign in
       </Link>
     </form>
@@ -267,13 +339,17 @@ export function ResetPasswordForm() {
   const params = useSearchParams();
   const token = params.get('token') ?? '';
   const [fieldError, setFieldError] = useState<string>();
-  const reset = useMutation({ mutationFn: (password: string) => api.auth.resetPassword(token, password) });
+  const reset = useMutation({
+    mutationFn: (password: string) => api.auth.resetPassword(token, password),
+  });
   if (reset.isSuccess) {
     return (
       <div className="space-y-4 text-center">
-        <CheckCircle2 className="mx-auto size-10 text-status-good" />
+        <CheckCircle2 className="text-status-good mx-auto size-10" />
         <h1 className="text-xl font-semibold">Password updated</h1>
-        <p className="text-sm text-muted-foreground">All sessions were signed out for your security.</p>
+        <p className="text-muted-foreground text-sm">
+          All sessions were signed out for your security.
+        </p>
         <Button asChild className="w-full">
           <Link href="/login">Sign in</Link>
         </Button>

@@ -30,7 +30,8 @@ export class ApiError extends Error {
 
   /** Field errors from a `validation_error` response, keyed by dotted path. */
   get fieldErrors(): Record<string, string> {
-    const issues = (this.details as { issues?: { path: string; message: string }[] } | undefined)?.issues ?? [];
+    const issues =
+      (this.details as { issues?: { path: string; message: string }[] } | undefined)?.issues ?? [];
     return Object.fromEntries(issues.map((issue) => [issue.path, issue.message]));
   }
 }

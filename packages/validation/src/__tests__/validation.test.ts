@@ -53,7 +53,11 @@ describe('auth schemas', () => {
 
   it('requires accepting terms and rejects markup in names', () => {
     expect(
-      registerSchema.safeParse({ email: 'a@b.de', password: 'correct horse battery', acceptTerms: false }).success,
+      registerSchema.safeParse({
+        email: 'a@b.de',
+        password: 'correct horse battery',
+        acceptTerms: false,
+      }).success,
     ).toBe(false);
     expect(
       registerSchema.safeParse({
@@ -78,7 +82,9 @@ describe('vpn schemas', () => {
 
   it('rejects invalid keys and allowed IPs', () => {
     expect(createConnectionSchema.safeParse({ deviceId, publicKey: 'nope' }).success).toBe(false);
-    expect(createConnectionSchema.safeParse({ deviceId, allowedIps: ['1.2.3.4/40'] }).success).toBe(false);
+    expect(createConnectionSchema.safeParse({ deviceId, allowedIps: ['1.2.3.4/40'] }).success).toBe(
+      false,
+    );
   });
 });
 
@@ -100,8 +106,12 @@ describe('admin schemas', () => {
   });
 
   it('requires exactly one discount type on coupons', () => {
-    expect(couponCreateSchema.safeParse({ code: 'storm', percentOff: 20, amountOffCents: 100 }).success).toBe(false);
-    expect(couponCreateSchema.safeParse({ code: 'storm', amountOffCents: 100 }).success).toBe(false);
+    expect(
+      couponCreateSchema.safeParse({ code: 'storm', percentOff: 20, amountOffCents: 100 }).success,
+    ).toBe(false);
+    expect(couponCreateSchema.safeParse({ code: 'storm', amountOffCents: 100 }).success).toBe(
+      false,
+    );
     expect(couponCreateSchema.parse({ code: 'storm', percentOff: 20 }).code).toBe('STORM');
   });
 
@@ -111,7 +121,13 @@ describe('admin schemas', () => {
   });
 
   it('applies plan defaults', () => {
-    const plan = planCreateSchema.parse({ slug: 'pro', name: 'Pro', priceCents: 999, maxDevices: 5, maxSessions: 5 });
+    const plan = planCreateSchema.parse({
+      slug: 'pro',
+      name: 'Pro',
+      priceCents: 999,
+      maxDevices: 5,
+      maxSessions: 5,
+    });
     expect(plan.serverClasses).toEqual(['STANDARD']);
     expect(plan.currency).toBe('eur');
   });
@@ -131,7 +147,14 @@ describe('agent heartbeat schema', () => {
         uptimeSeconds: 1,
         loadAverage: [0, 0, 0],
       },
-      wireguard: { interfaceUp: true, listenPort: 51820, peerCount: 0, appliedRevision: 0, totalRxBytes: 0, totalTxBytes: 0 },
+      wireguard: {
+        interfaceUp: true,
+        listenPort: 51820,
+        peerCount: 0,
+        appliedRevision: 0,
+        totalRxBytes: 0,
+        totalTxBytes: 0,
+      },
     };
     expect(agentHeartbeatSchema.safeParse(heartbeat).success).toBe(false);
     heartbeat.metrics.cpuPercent = 50;

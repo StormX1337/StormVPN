@@ -17,7 +17,8 @@ export const authPlugin = fp(async (app: FastifyInstance) => {
     const claims = await tokens.verifyAccessToken(token);
     const state = await sessions.getState(claims.sessionId);
     if (!state) throw unauthorized('session_revoked', 'Session expired, please sign in again');
-    if (state.status !== 'ACTIVE') throw forbidden('account_suspended', 'This account has been suspended');
+    if (state.status !== 'ACTIVE')
+      throw forbidden('account_suspended', 'This account has been suspended');
 
     request.auth = {
       userId: claims.userId,
@@ -26,7 +27,9 @@ export const authPlugin = fp(async (app: FastifyInstance) => {
       emailVerified: state.emailVerified,
       via: bearer ? 'bearer' : 'cookie',
     };
-    void sessions.touch(claims.sessionId).catch((error: unknown) => request.log.warn({ err: error }, 'session touch failed'));
+    void sessions
+      .touch(claims.sessionId)
+      .catch((error: unknown) => request.log.warn({ err: error }, 'session touch failed'));
   });
 
   app.decorate('requireVerifiedEmail', async (request: FastifyRequest) => {

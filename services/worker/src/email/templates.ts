@@ -7,9 +7,13 @@ export interface RenderedEmail {
 }
 
 const escapeHtml = (value: string): string =>
-  value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+  value.replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!,
+  );
 
-const str = (value: unknown): string => (value === null || value === undefined ? '' : String(value));
+const str = (value: unknown): string =>
+  value === null || value === undefined ? '' : String(value);
 
 interface TemplateContent {
   subject: string;
@@ -25,21 +29,29 @@ function content(job: EmailJob, appUrl: string): TemplateContent {
     'verify-email': () => ({
       subject: 'Confirm your StormVPN email address',
       heading: 'Confirm your email',
-      paragraphs: [`Hi${d.name ? ` ${str(d.name)}` : ''}, welcome to StormVPN!`, 'Please confirm your email address to activate your account.'],
+      paragraphs: [
+        `Hi${d.name ? ` ${str(d.name)}` : ''}, welcome to StormVPN!`,
+        'Please confirm your email address to activate your account.',
+      ],
       action: { label: 'Confirm email', url: str(d.link) },
-      footnote: 'This link expires in 24 hours. If you did not create an account, ignore this email.',
+      footnote:
+        'This link expires in 24 hours. If you did not create an account, ignore this email.',
     }),
     'password-reset': () => ({
       subject: 'Reset your StormVPN password',
       heading: 'Reset your password',
       paragraphs: ['We received a request to reset the password of your StormVPN account.'],
       action: { label: 'Choose a new password', url: str(d.link) },
-      footnote: 'This link expires in 1 hour. If you did not request a reset, you can safely ignore this email.',
+      footnote:
+        'This link expires in 1 hour. If you did not request a reset, you can safely ignore this email.',
     }),
     'password-changed': () => ({
       subject: 'Your StormVPN password was changed',
       heading: 'Password changed',
-      paragraphs: [`Your password was changed at ${str(d.time)}. Other sessions have been signed out.`, 'If this was not you, reset your password immediately and contact support.'],
+      paragraphs: [
+        `Your password was changed at ${str(d.time)}. Other sessions have been signed out.`,
+        'If this was not you, reset your password immediately and contact support.',
+      ],
       action: { label: 'Review account security', url: `${appUrl}/account` },
     }),
     welcome: () => ({
@@ -51,14 +63,22 @@ function content(job: EmailJob, appUrl: string): TemplateContent {
     'new-login': () => ({
       subject: 'New sign-in to your StormVPN account',
       heading: 'New sign-in detected',
-      paragraphs: [`We noticed a sign-in from ${str(d.ipAddress)} (${str(d.userAgent)}) at ${str(d.time)}.`, 'If this was you, no action is needed.'],
+      paragraphs: [
+        `We noticed a sign-in from ${str(d.ipAddress)} (${str(d.userAgent)}) at ${str(d.time)}.`,
+        'If this was you, no action is needed.',
+      ],
       action: { label: 'Review sessions', url: `${appUrl}/account` },
     }),
     'payment-failed': () => ({
       subject: 'Payment failed for your StormVPN subscription',
       heading: 'We could not process your payment',
-      paragraphs: [`The payment of ${str(d.amount)} ${str(d.currency)} failed. Please update your payment method to keep your protection active.`],
-      action: { label: 'Update payment method', url: d.invoiceUrl ? str(d.invoiceUrl) : `${appUrl}/subscription` },
+      paragraphs: [
+        `The payment of ${str(d.amount)} ${str(d.currency)} failed. Please update your payment method to keep your protection active.`,
+      ],
+      action: {
+        label: 'Update payment method',
+        url: d.invoiceUrl ? str(d.invoiceUrl) : `${appUrl}/subscription`,
+      },
     }),
     'subscription-canceled': () => ({
       subject: 'Your StormVPN subscription was cancelled',
@@ -69,18 +89,24 @@ function content(job: EmailJob, appUrl: string): TemplateContent {
     'trial-ending': () => ({
       subject: 'Your StormVPN trial ends soon',
       heading: 'Your trial is ending',
-      paragraphs: [`Your ${str(d.plan)} trial ends on ${str(d.trialEnd).slice(0, 10)}. Your subscription continues automatically unless you cancel.`],
+      paragraphs: [
+        `Your ${str(d.plan)} trial ends on ${str(d.trialEnd).slice(0, 10)}. Your subscription continues automatically unless you cancel.`,
+      ],
       action: { label: 'Manage subscription', url: `${appUrl}/subscription` },
     }),
     'account-suspended': () => ({
       subject: 'Your StormVPN account has been suspended',
       heading: 'Account suspended',
-      paragraphs: [`Your account was suspended (${str(d.reason)}). Contact support if you believe this is a mistake.`],
+      paragraphs: [
+        `Your account was suspended (${str(d.reason)}). Contact support if you believe this is a mistake.`,
+      ],
     }),
     'traffic-limit-reached': () => ({
       subject: 'You reached your monthly StormVPN traffic',
       heading: 'Traffic allowance used up',
-      paragraphs: [`You used your ${str(d.limitGb)} GB monthly allowance. Upgrade for unlimited traffic or wait until next month.`],
+      paragraphs: [
+        `You used your ${str(d.limitGb)} GB monthly allowance. Upgrade for unlimited traffic or wait until next month.`,
+      ],
       action: { label: 'Upgrade now', url: `${appUrl}/subscription` },
     }),
   };

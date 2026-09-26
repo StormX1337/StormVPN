@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { generateTotp } from '@stormvpn/crypto/node';
-import { call, createHarness, type Harness, PASSWORD, registerUser, seedPlans } from './helpers/harness';
+import {
+  call,
+  createHarness,
+  type Harness,
+  PASSWORD,
+  registerUser,
+  seedPlans,
+} from './helpers/harness';
 
 const native = { 'x-stormvpn-client': 'native' };
 let h: Harness;
@@ -52,17 +59,25 @@ describe('browser auth flow (cookies + CSRF)', () => {
     expect(refreshCookie.path).toBe('/api/v1/auth');
     expect(refreshCookie.sameSite).toBe('Strict');
 
-    const me = await h.app.inject({ method: 'GET', url: '/api/v1/user', cookies: { svpn_at: accessCookie.value } });
+    const me = await h.app.inject({
+      method: 'GET',
+      url: '/api/v1/user',
+      cookies: { svpn_at: accessCookie.value },
+    });
     expect(me.statusCode).toBe(200);
 
     // New accounts start on the free plan and receive a verification email.
-    const subscription = await h.db.subscription.findFirstOrThrow({ where: { userId: body.user.id }, include: { plan: true } });
+    const subscription = await h.db.subscription.findFirstOrThrow({
+      where: { userId: body.user.id },
+      include: { plan: true },
+    });
     expect(subscription.plan.slug).toBe('free');
     expect(h.mail.last('verify-email', 'browser@example.com')).toBeDefined();
   });
 
   it('refreshes via cookie and clears cookies on logout', async () => {
-    const csrfToken = (await h.app.inject({ method: 'GET', url: '/api/v1/auth/csrf' })).json().csrfToken as string;
+    const csrfToken = (await h.app.inject({ method: 'GET', url: '/api/v1/auth/csrf' })).json()
+      .csrfToken as string;
     const register = await h.app.inject({
       method: 'POST',
       url: '/api/v1/auth/register',
@@ -152,7 +167,9 @@ describe('registration & login', () => {
     const locked = await attempt(PASSWORD);
     expect(locked.statusCode).toBe(429);
     expect(locked.json().error.code).toBe('account_locked');
-    const events = await h.db.securityEvent.findMany({ where: { type: { in: ['LOGIN_FAILED', 'LOGIN_LOCKED'] } } });
+    const events = await h.db.securityEvent.findMany({
+      where: { type: { in: ['LOGIN_FAILED', 'LOGIN_LOCKED'] } },
+    });
     expect(events.map((event) => event.type)).toContain('LOGIN_LOCKED');
   });
 
@@ -201,7 +218,11 @@ describe('refresh token rotation', () => {
     expect(await h.db.securityEvent.count({ where: { type: 'REFRESH_TOKEN_REUSE' } })).toBe(1);
 
     // Revocation applies to access tokens immediately.
-    const me = await call(h, { token: first.json().tokens.accessToken, userId: session.userId }, { method: 'GET', url: '/api/v1/user' });
+    const me = await call(
+      h,
+      { token: first.json().tokens.accessToken, userId: session.userId },
+      { method: 'GET', url: '/api/v1/user' },
+    );
     expect(me.statusCode).toBe(401);
   });
 });
@@ -210,10 +231,20 @@ describe('email verification & password reset', () => {
   it('verifies email with a single-use token', async () => {
     const session = await registerUser(h, 'verify@example.com', { verify: false });
     const token = h.mail.tokenFrom('verify-email', 'verify@example.com');
-    const verify = await h.app.inject({ method: 'POST', url: '/api/v1/auth/verify-email', headers: native, payload: { token } });
+    const verify = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/verify-email',
+      headers: native,
+      payload: { token },
+    });
     expect(verify.statusCode).toBe(200);
     expect(verify.json().user.emailVerified).toBe(true);
-    const again = await h.app.inject({ method: 'POST', url: '/api/v1/auth/verify-email', headers: native, payload: { token } });
+    const again = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/verify-email',
+      headers: native,
+      payload: { token },
+    });
     expect(again.statusCode).toBe(400);
     const me = await call(h, session, { method: 'GET', url: '/api/v1/user' });
     expect(me.json().emailVerified).toBe(true);
@@ -263,7 +294,11 @@ describe('two-factor authentication', () => {
     const { secret, otpauthUrl } = setup.json();
     expect(otpauthUrl).toContain('otpauth://totp/StormVPN');
 
-    const wrong = await call(h, session, { method: 'POST', url: '/api/v1/account/2fa/enable', payload: { code: '000000' } });
+    const wrong = await call(h, session, {
+      method: 'POST',
+      url: '/api/v1/account/2fa/enable',
+      payload: { code: '000000' },
+    });
     expect(wrong.statusCode).toBe(400);
     const enable = await call(h, session, {
       method: 'POST',
@@ -310,6 +345,8 @@ describe('two-factor authentication', () => {
       payload: { mfaToken: second.mfaToken, code: backupCodes[0] },
     });
     expect(reuse.statusCode).toBe(401);
-    expect(await h.db.securityEvent.count({ where: { type: 'MFA_FAILED' } })).toBeGreaterThanOrEqual(2);
+    expect(
+      await h.db.securityEvent.count({ where: { type: 'MFA_FAILED' } }),
+    ).toBeGreaterThanOrEqual(2);
   });
 });

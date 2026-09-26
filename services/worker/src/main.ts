@@ -1,5 +1,11 @@
 import { Worker } from 'bullmq';
-import { createLogger, loadEnv, QUEUE_EMAIL, QUEUE_MAINTENANCE, workerEnvSchema } from '@stormvpn/config';
+import {
+  createLogger,
+  loadEnv,
+  QUEUE_EMAIL,
+  QUEUE_MAINTENANCE,
+  workerEnvSchema,
+} from '@stormvpn/config';
 import { BullMailQueue, createRedis, RedisEventPublisher, SettingsService } from '@stormvpn/core';
 import { createPrismaClient } from '@stormvpn/database';
 import { SmtpMailer } from './email/mailer';
@@ -8,7 +14,11 @@ import { createEmailProcessor, createMaintenanceProcessor } from './processors';
 
 async function main(): Promise<void> {
   const env = loadEnv(workerEnvSchema);
-  const logger = createLogger({ name: 'stormvpn-worker', level: env.LOG_LEVEL, pretty: env.LOG_PRETTY });
+  const logger = createLogger({
+    name: 'stormvpn-worker',
+    level: env.LOG_LEVEL,
+    pretty: env.LOG_PRETTY,
+  });
   const db = createPrismaClient({ url: env.DATABASE_URL, applicationName: 'stormvpn-worker' });
   const redis = createRedis(env.REDIS_URL);
   const connection = createRedis(env.REDIS_URL, { forBullMq: true });
@@ -41,7 +51,12 @@ async function main(): Promise<void> {
   );
 
   for (const worker of [emailWorker, maintenanceWorker]) {
-    worker.on('failed', (job, error) => logger.error({ err: error, job: job?.name, queue: worker.name, attempts: job?.attemptsMade }, 'job failed'));
+    worker.on('failed', (job, error) =>
+      logger.error(
+        { err: error, job: job?.name, queue: worker.name, attempts: job?.attemptsMade },
+        'job failed',
+      ),
+    );
     worker.on('error', (error) => logger.error({ err: error, queue: worker.name }, 'worker error'));
   }
 
@@ -49,7 +64,8 @@ async function main(): Promise<void> {
     await Promise.all([redis.ping(), db.$queryRaw`SELECT 1`]);
     return emailWorker.isRunning() && maintenanceWorker.isRunning();
   });
-  if (!(await mailer.verify())) logger.warn({ host: env.SMTP_HOST }, 'SMTP server not reachable – emails will be retried');
+  if (!(await mailer.verify()))
+    logger.warn({ host: env.SMTP_HOST }, 'SMTP server not reachable – emails will be retried');
   logger.info('worker started');
 
   const shutdown = async (signal: string) => {

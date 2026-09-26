@@ -1,0 +1,31 @@
+# Prometheus configuration for StormVPN.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    platform: stormvpn
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  # API: HTTP latency/error metrics + business gauges (nodes, connections, per-node metrics).
+  - job_name: stormvpn-api
+    metrics_path: /metrics
+    # In production set METRICS_TOKEN and uncomment:
+    # authorization:
+    #   credentials_file: /etc/prometheus/secrets/metrics-token
+    static_configs:
+      - targets: ['api:4000']
+
+  # Node agents expose :9586 on localhost by default. To scrape them centrally,
+  # bind METRICS_HOST to a private/management interface and list the nodes in
+  # nodes.json (file based service discovery, reloaded automatically).
+  - job_name: stormvpn-agents
+    file_sd_configs:
+      - files: ['/etc/prometheus/targets/nodes*.json']
+        refresh_interval: 1m
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

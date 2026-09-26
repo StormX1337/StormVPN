@@ -5,7 +5,9 @@ import { applySchedule, buildSchedule } from '../schedule';
 describe('maintenance schedule', () => {
   it('schedules every maintenance handler with a sane interval', () => {
     const schedule = buildSchedule();
-    expect(schedule.map((entry) => entry.name).sort()).toEqual(Object.keys(MAINTENANCE_HANDLERS).sort());
+    expect(schedule.map((entry) => entry.name).sort()).toEqual(
+      Object.keys(MAINTENANCE_HANDLERS).sort(),
+    );
     for (const entry of schedule) expect(entry.everyMs).toBeGreaterThanOrEqual(10_000);
   });
 

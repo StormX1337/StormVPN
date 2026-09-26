@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { formatBitrate, formatBytes, formatCompact, formatCurrency, formatDuration } from './format';
+import {
+  formatBitrate,
+  formatBytes,
+  formatCompact,
+  formatCurrency,
+  formatDuration,
+} from './format';
 
 describe('format helpers', () => {
   it('formats bytes and bit rates', () => {

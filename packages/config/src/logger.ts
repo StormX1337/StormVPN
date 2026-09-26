@@ -30,7 +30,11 @@ export interface CreateLoggerOptions {
 }
 
 /** Structured JSON logger (pino) with secret redaction. */
-export function createLogger({ name, level = 'info', pretty = false }: CreateLoggerOptions): Logger {
+export function createLogger({
+  name,
+  level = 'info',
+  pretty = false,
+}: CreateLoggerOptions): Logger {
   const options: LoggerOptions = {
     name,
     level,

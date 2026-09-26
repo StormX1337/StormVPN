@@ -19,9 +19,15 @@ export class PeerTrafficTracker {
       const rxDelta = before && peer.rxBytes >= before.rx ? peer.rxBytes - before.rx : peer.rxBytes;
       const txDelta = before && peer.txBytes >= before.tx ? peer.txBytes - before.tx : peer.txBytes;
       next.set(peer.publicKey, { rx: peer.rxBytes, tx: peer.txBytes });
-      const recent = peer.latestHandshake > 0 && nowSeconds - peer.latestHandshake < ACTIVE_HANDSHAKE_SECONDS;
+      const recent =
+        peer.latestHandshake > 0 && nowSeconds - peer.latestHandshake < ACTIVE_HANDSHAKE_SECONDS;
       if (rxDelta > 0 || txDelta > 0 || recent) {
-        stats.push({ publicKey: peer.publicKey, latestHandshake: peer.latestHandshake, rxBytesDelta: rxDelta, txBytesDelta: txDelta });
+        stats.push({
+          publicKey: peer.publicKey,
+          latestHandshake: peer.latestHandshake,
+          rxBytesDelta: rxDelta,
+          txBytesDelta: txDelta,
+        });
       }
     }
     this.previous = next;
@@ -32,7 +38,11 @@ export class PeerTrafficTracker {
   rollback(stats: AgentPeerStat[]): void {
     for (const stat of stats) {
       const entry = this.previous.get(stat.publicKey);
-      if (entry) this.previous.set(stat.publicKey, { rx: entry.rx - stat.rxBytesDelta, tx: entry.tx - stat.txBytesDelta });
+      if (entry)
+        this.previous.set(stat.publicKey, {
+          rx: entry.rx - stat.rxBytesDelta,
+          tx: entry.tx - stat.txBytesDelta,
+        });
     }
   }
 }

@@ -1,28 +1,61 @@
 'use client';
 
 import { Button, Logo, Skeleton, ThemeToggle } from '@stormvpn/ui';
-import { EyeOff, Gauge, Globe2, KeyRound, MonitorSmartphone, ServerCog, ShieldCheck, Zap } from 'lucide-react';
+import {
+  EyeOff,
+  Gauge,
+  Globe2,
+  KeyRound,
+  MonitorSmartphone,
+  ServerCog,
+  ShieldCheck,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePlans } from '@/lib/queries';
 import { PlanCards } from './plan-cards';
 
 const FEATURES = [
-  { icon: Zap, title: 'WireGuard® speed', text: 'Modern cryptography (Curve25519, ChaCha20-Poly1305) with minimal overhead and instant reconnects.' },
-  { icon: ServerCog, title: 'Own infrastructure', text: 'Every node is operated by StormVPN – no rented third-party VPN capacity.' },
-  { icon: EyeOff, title: 'No activity logs', text: 'We never record destinations, DNS queries or traffic content – only aggregated volume for fair use.' },
-  { icon: KeyRound, title: 'Keys stay yours', text: 'Private keys are generated on your device. Our servers only ever see your public key.' },
-  { icon: Gauge, title: 'Smart Quick Connect', text: 'Load balancing picks the best server by load, latency and capacity in milliseconds.' },
-  { icon: MonitorSmartphone, title: 'Every platform', text: 'Windows, macOS, Linux, Android, iOS and routers – manage all devices in one dashboard.' },
+  {
+    icon: Zap,
+    title: 'WireGuard® speed',
+    text: 'Modern cryptography (Curve25519, ChaCha20-Poly1305) with minimal overhead and instant reconnects.',
+  },
+  {
+    icon: ServerCog,
+    title: 'Own infrastructure',
+    text: 'Every node is operated by StormVPN – no rented third-party VPN capacity.',
+  },
+  {
+    icon: EyeOff,
+    title: 'No activity logs',
+    text: 'We never record destinations, DNS queries or traffic content – only aggregated volume for fair use.',
+  },
+  {
+    icon: KeyRound,
+    title: 'Keys stay yours',
+    text: 'Private keys are generated on your device. Our servers only ever see your public key.',
+  },
+  {
+    icon: Gauge,
+    title: 'Smart Quick Connect',
+    text: 'Load balancing picks the best server by load, latency and capacity in milliseconds.',
+  },
+  {
+    icon: MonitorSmartphone,
+    title: 'Every platform',
+    text: 'Windows, macOS, Linux, Android, iOS and routers – manage all devices in one dashboard.',
+  },
 ];
 
 export function Landing() {
   const { data: plans, isLoading } = usePlans();
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-30 border-b bg-background/70 backdrop-blur">
+      <header className="bg-background/70 sticky top-0 z-30 border-b backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
           <Logo />
-          <nav className="ml-auto hidden items-center gap-6 text-sm text-muted-foreground md:flex">
+          <nav className="text-muted-foreground ml-auto hidden items-center gap-6 text-sm md:flex">
             <a href="#features" className="hover:text-foreground">
               Features
             </a>
@@ -45,15 +78,19 @@ export function Landing() {
       <section className="hero-glow relative overflow-hidden">
         <div className="grid-fade pointer-events-none absolute inset-0" aria-hidden />
         <div className="relative mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 pt-20 pb-24 text-center md:pt-28">
-          <span className="inline-flex items-center gap-2 rounded-full border bg-card/60 px-3 py-1 text-xs text-muted-foreground">
-            <ShieldCheck className="size-3.5 text-status-good" /> WireGuard® · Own global network · No logs
+          <span className="bg-card/60 text-muted-foreground inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
+            <ShieldCheck className="text-status-good size-3.5" /> WireGuard® · Own global network ·
+            No logs
           </span>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
             Weather any network.{' '}
-            <span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">Stay private with StormVPN.</span>
+            <span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
+              Stay private with StormVPN.
+            </span>
           </h1>
-          <p className="max-w-2xl text-lg text-muted-foreground">
-            A fast, modern VPN on infrastructure we run ourselves. Connect in one click, manage every device, and keep full control of your keys.
+          <p className="text-muted-foreground max-w-2xl text-lg">
+            A fast, modern VPN on infrastructure we run ourselves. Connect in one click, manage
+            every device, and keep full control of your keys.
           </p>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild variant="brand" size="lg">
@@ -63,7 +100,7 @@ export function Landing() {
               <a href="#pricing">See plans</a>
             </Button>
           </div>
-          <div className="mt-6 grid w-full max-w-3xl grid-cols-3 gap-4 rounded-2xl border bg-card/60 p-5 text-left backdrop-blur">
+          <div className="bg-card/60 mt-6 grid w-full max-w-3xl grid-cols-3 gap-4 rounded-2xl border p-5 text-left backdrop-blur">
             {[
               ['9+', 'locations'],
               ['10 Gbit/s', 'per node'],
@@ -71,7 +108,7 @@ export function Landing() {
             ].map(([value, label]) => (
               <div key={label}>
                 <div className="text-2xl font-semibold">{value}</div>
-                <div className="text-sm text-muted-foreground">{label}</div>
+                <div className="text-muted-foreground text-sm">{label}</div>
               </div>
             ))}
           </div>
@@ -80,27 +117,36 @@ export function Landing() {
 
       <section id="features" className="mx-auto w-full max-w-6xl px-4 py-20">
         <div className="mb-10 max-w-2xl space-y-2">
-          <h2 className="text-3xl font-semibold tracking-tight">Built for privacy, engineered for speed</h2>
-          <p className="text-muted-foreground">Security-first architecture from the key exchange to the billing system.</p>
+          <h2 className="text-3xl font-semibold tracking-tight">
+            Built for privacy, engineered for speed
+          </h2>
+          <p className="text-muted-foreground">
+            Security-first architecture from the key exchange to the billing system.
+          </p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, text }) => (
-            <div key={title} className="rounded-2xl border bg-card p-6 transition hover:border-primary/40">
+            <div
+              key={title}
+              className="bg-card hover:border-primary/40 rounded-2xl border p-6 transition"
+            >
               <div className="mb-4 inline-flex rounded-xl bg-gradient-to-br from-sky-500/15 to-indigo-500/15 p-2.5">
                 <Icon className="size-5 text-sky-400" />
               </div>
               <h3 className="font-semibold">{title}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+              <p className="text-muted-foreground mt-1 text-sm">{text}</p>
             </div>
           ))}
         </div>
       </section>
 
-      <section id="pricing" className="border-t bg-card/30">
+      <section id="pricing" className="bg-card/30 border-t">
         <div className="mx-auto w-full max-w-6xl px-4 py-20">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-semibold tracking-tight">Simple pricing</h2>
-            <p className="mt-2 text-muted-foreground">Start free. Upgrade for more devices, locations and unlimited traffic. Cancel anytime.</p>
+            <p className="text-muted-foreground mt-2">
+              Start free. Upgrade for more devices, locations and unlimited traffic. Cancel anytime.
+            </p>
           </div>
           {isLoading ? (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -113,7 +159,13 @@ export function Landing() {
               plans={plans ?? []}
               renderAction={(plan) => (
                 <Button asChild variant={plan.slug === 'pro' ? 'brand' : 'outline'}>
-                  <Link href={`/register?plan=${plan.slug}`}>{plan.isFree ? 'Start free' : plan.trialDays ? `Try ${plan.trialDays} days free` : 'Get started'}</Link>
+                  <Link href={`/register?plan=${plan.slug}`}>
+                    {plan.isFree
+                      ? 'Start free'
+                      : plan.trialDays
+                        ? `Try ${plan.trialDays} days free`
+                        : 'Get started'}
+                  </Link>
                 </Button>
               )}
             />
@@ -122,10 +174,11 @@ export function Landing() {
       </section>
 
       <footer className="border-t">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-muted-foreground mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm sm:flex-row sm:items-center sm:justify-between">
           <Logo />
           <p className="flex items-center gap-2">
-            <Globe2 className="size-4" /> © {new Date().getFullYear()} StormVPN. WireGuard is a registered trademark of Jason A. Donenfeld.
+            <Globe2 className="size-4" /> © {new Date().getFullYear()} StormVPN. WireGuard is a
+            registered trademark of Jason A. Donenfeld.
           </p>
         </div>
       </footer>

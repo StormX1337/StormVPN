@@ -18,4 +18,7 @@ export type CheckoutInput = z.infer<typeof checkoutSchema>;
 export const changePlanSchema = z.object({ planId: idSchema });
 export type ChangePlanInput = z.infer<typeof changePlanSchema>;
 
-export const validateCouponSchema = z.object({ code: couponCodeSchema, planId: idSchema.optional() });
+export const validateCouponSchema = z.object({
+  code: couponCodeSchema,
+  planId: idSchema.optional(),
+});

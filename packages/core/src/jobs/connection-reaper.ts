@@ -15,7 +15,10 @@ export async function runConnectionReaper(ctx: JobContext): Promise<JobResult> {
   const idle = await ctx.db.vPNConnection.findMany({
     where: {
       OR: [
-        { status: 'CONNECTED', OR: [{ lastHandshakeAt: null }, { lastHandshakeAt: { lt: cutoff } }] },
+        {
+          status: 'CONNECTED',
+          OR: [{ lastHandshakeAt: null }, { lastHandshakeAt: { lt: cutoff } }],
+        },
         { status: 'CONNECTING', startedAt: { lt: cutoff } },
       ],
     },

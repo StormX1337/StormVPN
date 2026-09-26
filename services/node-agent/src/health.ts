@@ -19,7 +19,9 @@ export class HealthChecker {
   private async ipForward(): Promise<{ ok: boolean; message?: string }> {
     try {
       const value = (await readFile('/proc/sys/net/ipv4/ip_forward', 'utf8')).trim();
-      return value === '1' ? { ok: true } : { ok: false, message: 'net.ipv4.ip_forward is disabled' };
+      return value === '1'
+        ? { ok: true }
+        : { ok: false, message: 'net.ipv4.ip_forward is disabled' };
     } catch {
       return { ok: false, message: 'cannot read ip_forward' };
     }
@@ -41,7 +43,9 @@ export class HealthChecker {
   }
 
   async run(): Promise<HealthReport> {
-    const wireguard = (await this.wireguard.isUp()) ? { ok: true } : { ok: false, message: 'interface down' };
+    const wireguard = (await this.wireguard.isUp())
+      ? { ok: true }
+      : { ok: false, message: 'interface down' };
     if (this.dryRun) return { wireguard, dryRun: { ok: true, message: 'simulated WireGuard' } };
     const [ipForward, nat] = await Promise.all([this.ipForward(), this.nat()]);
     return { wireguard, ipForward, nat };

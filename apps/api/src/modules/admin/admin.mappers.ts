@@ -2,7 +2,10 @@ import { toNumber, type VPNNode } from '@stormvpn/database';
 import { countryName, type AdminNodeDto, type AdminServerDto } from '@stormvpn/types';
 import type { ServerWithNode } from '../servers/server-catalog';
 
-export function toAdminNodeDto(node: VPNNode, server: { name: string; peerRevision: number }): AdminNodeDto {
+export function toAdminNodeDto(
+  node: VPNNode,
+  server: { name: string; peerRevision: number },
+): AdminNodeDto {
   const rx = toNumber(node.rxBps);
   const tx = toNumber(node.txBps);
   return {
@@ -36,7 +39,11 @@ export function toAdminNodeDto(node: VPNNode, server: { name: string; peerRevisi
   };
 }
 
-export function toAdminServerDto(server: ServerWithNode, peerCount: number, nodeStatus: AdminServerDto['nodeStatus']): AdminServerDto {
+export function toAdminServerDto(
+  server: ServerWithNode,
+  peerCount: number,
+  nodeStatus: AdminServerDto['nodeStatus'],
+): AdminServerDto {
   return {
     id: server.id,
     name: server.name,

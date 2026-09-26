@@ -3,7 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createLogger } from '@stormvpn/config';
-import type { AgentConfigResponse, AgentHeartbeatInput, AgentHeartbeatResponse } from '@stormvpn/validation';
+import type {
+  AgentConfigResponse,
+  AgentHeartbeatInput,
+  AgentHeartbeatResponse,
+} from '@stormvpn/validation';
 import { type AgentDependencies, NodeAgent } from '../agent';
 import { ApiError, type ControlPlaneClient } from '../api-client';
 import { loadAgentConfig } from '../config';
@@ -29,7 +33,13 @@ class FakeClient {
   }
   async register() {
     this.registered++;
-    return { nodeId: 'node-1', serverId: 'server-1', serverName: 'DE-FRA-01', nodeToken: 'snt_token', heartbeatIntervalSeconds: 15 };
+    return {
+      nodeId: 'node-1',
+      serverId: 'server-1',
+      serverName: 'DE-FRA-01',
+      nodeToken: 'snt_token',
+      heartbeatIntervalSeconds: 15,
+    };
   }
   async heartbeat(body: AgentHeartbeatInput): Promise<AgentHeartbeatResponse> {
     if (this.failNext) {
@@ -37,14 +47,29 @@ class FakeClient {
       throw new ApiError(503, 'unavailable', 'down');
     }
     this.heartbeats.push(body);
-    return { nodeId: 'node-1', desiredRevision: this.desiredRevision, heartbeatIntervalSeconds: 15, maintenance: false, killSwitch: false, desiredAgentVersion: null, updateUrl: null };
+    return {
+      nodeId: 'node-1',
+      desiredRevision: this.desiredRevision,
+      heartbeatIntervalSeconds: 15,
+      maintenance: false,
+      killSwitch: false,
+      desiredAgentVersion: null,
+      updateUrl: null,
+    };
   }
   async config(known: number | null): Promise<AgentConfigResponse | null> {
     this.configCalls.push(known);
     if (known === this.desiredRevision) return null;
     return {
       revision: this.desiredRevision,
-      interface: { listenPort: 51820, addressV4: '10.80.0.1/20', addressV6: null, subnetV4: '10.80.0.0/20', subnetV6: null, dns: [] },
+      interface: {
+        listenPort: 51820,
+        addressV4: '10.80.0.1/20',
+        addressV6: null,
+        subnetV4: '10.80.0.0/20',
+        subnetV6: null,
+        dns: [],
+      },
       peers: [],
     };
   }
@@ -77,7 +102,18 @@ async function setup() {
   });
   const client = new FakeClient();
   const wireguard = new FakeWireGuard();
-  const metrics = { collect: async () => ({ cpuPercent: 5, memoryPercent: 10, memoryTotalBytes: 1, diskPercent: 20, rxBps: 0, txBps: 0, uptimeSeconds: 1, loadAverage: [0, 0, 0] as [number, number, number] }) };
+  const metrics = {
+    collect: async () => ({
+      cpuPercent: 5,
+      memoryPercent: 10,
+      memoryTotalBytes: 1,
+      diskPercent: 20,
+      rxBps: 0,
+      txBps: 0,
+      uptimeSeconds: 1,
+      loadAverage: [0, 0, 0] as [number, number, number],
+    }),
+  };
   const health = { run: async () => ({ wireguard: { ok: true } }) };
   const agent = new NodeAgent({
     config,
@@ -86,7 +122,12 @@ async function setup() {
     wireguard,
     metrics: metrics as unknown as SystemMetricsCollector,
     health: health as unknown as HealthChecker,
-    updater: new Updater(false, '/bin/false', { run: async () => ({ stdout: '', stderr: '' }) }, logger),
+    updater: new Updater(
+      false,
+      '/bin/false',
+      { run: async () => ({ stdout: '', stderr: '' }) },
+      logger,
+    ),
     logger,
   });
   return { agent, client, wireguard, dir, config };
@@ -98,7 +139,10 @@ describe('NodeAgent', () => {
     await agent.ensureRegistered();
     expect(client.registered).toBe(1);
     expect(client.token).toBe('snt_token');
-    const again = new NodeAgent({ ...(agent as unknown as { deps: AgentDependencies }).deps, config });
+    const again = new NodeAgent({
+      ...(agent as unknown as { deps: AgentDependencies }).deps,
+      config,
+    });
     await again.ensureRegistered();
     expect(client.registered).toBe(1);
     expect((await new StateStore(dir).readCredentials())?.serverName).toBe('DE-FRA-01');
@@ -122,17 +166,41 @@ describe('NodeAgent', () => {
     await agent.ensureRegistered();
     await agent.syncConfig(true);
     const now = Math.floor(Date.now() / 1000);
-    wireguard.peers = [{ publicKey: 'P=', endpoint: null, allowedIps: [], latestHandshake: now, rxBytes: 1000, txBytes: 2000 }];
+    wireguard.peers = [
+      {
+        publicKey: 'P=',
+        endpoint: null,
+        allowedIps: [],
+        latestHandshake: now,
+        rxBytes: 1000,
+        txBytes: 2000,
+      },
+    ];
     client.failNext = true;
     await expect(agent.tick()).rejects.toThrow();
-    wireguard.peers = [{ publicKey: 'P=', endpoint: null, allowedIps: [], latestHandshake: now, rxBytes: 1500, txBytes: 2500 }];
+    wireguard.peers = [
+      {
+        publicKey: 'P=',
+        endpoint: null,
+        allowedIps: [],
+        latestHandshake: now,
+        rxBytes: 1500,
+        txBytes: 2500,
+      },
+    ];
     await agent.tick();
-    expect(client.heartbeats.at(-1)!.peers[0]).toMatchObject({ rxBytesDelta: 1500, txBytesDelta: 2500 });
+    expect(client.heartbeats.at(-1)!.peers[0]).toMatchObject({
+      rxBytesDelta: 1500,
+      txBytesDelta: 2500,
+    });
     expect(agent.snapshot.heartbeatFailures).toBe(1);
   });
 
   it('requires https for the control plane unless explicitly allowed', () => {
     expect(() => loadAgentConfig({ STORMVPN_API_URL: 'http://api.test' })).toThrow(/https/);
-    expect(loadAgentConfig({ STORMVPN_API_URL: 'http://api.test', AGENT_ALLOW_INSECURE_HTTP: 'true' }).AGENT_ALLOW_INSECURE_HTTP).toBe(true);
+    expect(
+      loadAgentConfig({ STORMVPN_API_URL: 'http://api.test', AGENT_ALLOW_INSECURE_HTTP: 'true' })
+        .AGENT_ALLOW_INSECURE_HTTP,
+    ).toBe(true);
   });
 });

@@ -18,10 +18,14 @@ export class Updater {
     private readonly logger: Logger,
   ) {}
 
-  async check(desiredVersion: string | null, updateUrl: string | null): Promise<'up-to-date' | 'available' | 'started' | 'failed'> {
+  async check(
+    desiredVersion: string | null,
+    updateUrl: string | null,
+  ): Promise<'up-to-date' | 'available' | 'started' | 'failed'> {
     if (!desiredVersion || !isNewerVersion(desiredVersion, AGENT_VERSION)) return 'up-to-date';
     if (!this.enabled || !updateUrl) {
-      if (!this.attempted.has(desiredVersion)) this.logger.warn({ current: AGENT_VERSION, desiredVersion }, 'agent update available');
+      if (!this.attempted.has(desiredVersion))
+        this.logger.warn({ current: AGENT_VERSION, desiredVersion }, 'agent update available');
       this.attempted.add(desiredVersion);
       return 'available';
     }

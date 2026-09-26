@@ -67,7 +67,8 @@ export interface ParsedCidr {
 
 export function parseCidr(cidr: string): ParsedCidr | null {
   const [address, prefixText, ...rest] = cidr.split('/');
-  if (!address || prefixText === undefined || rest.length > 0 || !/^\d{1,3}$/.test(prefixText)) return null;
+  if (!address || prefixText === undefined || rest.length > 0 || !/^\d{1,3}$/.test(prefixText))
+    return null;
   const prefix = Number(prefixText);
   if (isIPv4(address) && prefix <= 32) return { version: 4, address, prefix };
   if (isIPv6(address) && prefix <= 128) return { version: 6, address, prefix };
@@ -79,7 +80,9 @@ export function isCidr(value: string): boolean {
 }
 
 /** Network base address and size of an IPv4 CIDR. */
-export function ipv4CidrRange(cidr: string): { network: number; size: number; prefix: number } | null {
+export function ipv4CidrRange(
+  cidr: string,
+): { network: number; size: number; prefix: number } | null {
   const parsed = parseCidr(cidr);
   if (!parsed || parsed.version !== 4) return null;
   const size = 2 ** (32 - parsed.prefix);

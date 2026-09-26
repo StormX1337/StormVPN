@@ -2,7 +2,7 @@
   "name": "@stormvpn/node-agent",
   "version": "1.0.0",
   "private": true,
-  "description": "StormVPN node agent – runs on every WireGuard VPN node",
+  "description": "StormVPN node agent \u2013 runs on every WireGuard VPN node",
   "type": "module",
   "bin": {
     "stormvpn-agent": "./dist/stormvpn-agent.mjs"
@@ -21,5 +21,8 @@
     "@stormvpn/crypto": "workspace:*",
     "@stormvpn/validation": "workspace:*",
     "zod": "^4.6.5"
-  }
+  },
+  "files": [
+    "dist"
+  ]
 }

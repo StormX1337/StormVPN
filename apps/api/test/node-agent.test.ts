@@ -27,8 +27,16 @@ async function adminSession() {
 async function enroll() {
   await seedPlans(h);
   const admin = await adminSession();
-  const { server } = await createServer(h, { name: 'NL-AMS-01', countryCode: 'NL', withNode: false, subnet: '10.95.0.0/20' });
-  const token = await call(h, admin, { method: 'POST', url: `/api/v1/admin/servers/${server.id}/enrollment-token` });
+  const { server } = await createServer(h, {
+    name: 'NL-AMS-01',
+    countryCode: 'NL',
+    withNode: false,
+    subnet: '10.95.0.0/20',
+  });
+  const token = await call(h, admin, {
+    method: 'POST',
+    url: `/api/v1/admin/servers/${server.id}/enrollment-token`,
+  });
   expect(token.statusCode, token.body).toBe(200);
   return { admin, server, enrollmentToken: token.json().enrollmentToken as string };
 }
@@ -45,7 +53,11 @@ const registerPayload = (enrollmentToken: string) => ({
 describe('node registration', () => {
   it('registers with a single-use enrollment token and issues a node token', async () => {
     const { server, enrollmentToken } = await enroll();
-    const response = await h.app.inject({ method: 'POST', url: '/api/v1/agent/register', payload: registerPayload(enrollmentToken) });
+    const response = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/register',
+      payload: registerPayload(enrollmentToken),
+    });
     expect(response.statusCode, response.body).toBe(201);
     const body = response.json();
     expect(body.serverName).toBe('NL-AMS-01');
@@ -54,14 +66,22 @@ describe('node registration', () => {
     expect(node.tokenHash).not.toBe(body.nodeToken);
     expect(node.tokenHash).toHaveLength(64);
 
-    const reuse = await h.app.inject({ method: 'POST', url: '/api/v1/agent/register', payload: registerPayload(enrollmentToken) });
+    const reuse = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/register',
+      payload: registerPayload(enrollmentToken),
+    });
     expect(reuse.statusCode).toBe(401);
   });
 
   it('rejects expired enrollment tokens and invalid node tokens', async () => {
     const { enrollmentToken } = await enroll();
     h.clock.advance(25 * 3600_000);
-    const expired = await h.app.inject({ method: 'POST', url: '/api/v1/agent/register', payload: registerPayload(enrollmentToken) });
+    const expired = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/register',
+      payload: registerPayload(enrollmentToken),
+    });
     expect(expired.statusCode).toBe(401);
     const heartbeat = await h.app.inject({
       method: 'POST',
@@ -77,39 +97,70 @@ describe('heartbeat & configuration sync', () => {
   it('updates metrics/status, samples history and returns the desired revision', async () => {
     const { server, enrollmentToken } = await enroll();
     const { nodeToken } = (
-      await h.app.inject({ method: 'POST', url: '/api/v1/agent/register', payload: registerPayload(enrollmentToken) })
+      await h.app.inject({
+        method: 'POST',
+        url: '/api/v1/agent/register',
+        payload: registerPayload(enrollmentToken),
+      })
     ).json();
     const auth = { authorization: `Bearer ${nodeToken}` };
 
-    const beat = await h.app.inject({ method: 'POST', url: '/api/v1/agent/heartbeat', headers: auth, payload: heartbeatBody() });
+    const beat = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/heartbeat',
+      headers: auth,
+      payload: heartbeatBody(),
+    });
     expect(beat.statusCode, beat.body).toBe(200);
-    expect(beat.json()).toMatchObject({ heartbeatIntervalSeconds: 15, maintenance: false, killSwitch: false });
+    expect(beat.json()).toMatchObject({
+      heartbeatIntervalSeconds: 15,
+      maintenance: false,
+      killSwitch: false,
+    });
     const node = await h.db.vPNNode.findUniqueOrThrow({ where: { serverId: server.id } });
     expect(node.status).toBe('ONLINE');
     expect(node.cpuPercent).toBe(20);
     expect(await h.db.nodeHeartbeat.count()).toBe(1);
 
-    await h.app.inject({ method: 'POST', url: '/api/v1/agent/heartbeat', headers: auth, payload: heartbeatBody() });
+    await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/heartbeat',
+      headers: auth,
+      payload: heartbeatBody(),
+    });
     expect(await h.db.nodeHeartbeat.count()).toBe(1); // sampled at most once per minute
 
     const degraded = await h.app.inject({
       method: 'POST',
       url: '/api/v1/agent/heartbeat',
       headers: auth,
-      payload: heartbeatBody({ health: { nat: { ok: false, message: 'masquerade rule missing' } } }),
+      payload: heartbeatBody({
+        health: { nat: { ok: false, message: 'masquerade rule missing' } },
+      }),
     });
     expect(degraded.statusCode).toBe(200);
-    expect((await h.db.vPNNode.findUniqueOrThrow({ where: { serverId: server.id } })).status).toBe('DEGRADED');
+    expect((await h.db.vPNNode.findUniqueOrThrow({ where: { serverId: server.id } })).status).toBe(
+      'DEGRADED',
+    );
     expect(h.events.adminEvents.some((event) => event.type === 'admin.node')).toBe(true);
   });
 
   it('serves the peer set with decrypted PSKs, supports ETags and honours the kill switch', async () => {
     const { admin, server, enrollmentToken } = await enroll();
     const { nodeToken } = (
-      await h.app.inject({ method: 'POST', url: '/api/v1/agent/register', payload: registerPayload(enrollmentToken) })
+      await h.app.inject({
+        method: 'POST',
+        url: '/api/v1/agent/register',
+        payload: registerPayload(enrollmentToken),
+      })
     ).json();
     const auth = { authorization: `Bearer ${nodeToken}` };
-    await h.app.inject({ method: 'POST', url: '/api/v1/agent/heartbeat', headers: auth, payload: heartbeatBody() });
+    await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/heartbeat',
+      headers: auth,
+      payload: heartbeatBody(),
+    });
 
     const plans = await h.db.plan.findUniqueOrThrow({ where: { slug: 'pro' } });
     const user = await registerUser(h, 'peer@example.com');
@@ -123,11 +174,21 @@ describe('heartbeat & configuration sync', () => {
     });
     const psk = configResponse.json().config.match(/PresharedKey = (.+)/)[1];
 
-    const config = await h.app.inject({ method: 'GET', url: '/api/v1/agent/config', headers: auth });
+    const config = await h.app.inject({
+      method: 'GET',
+      url: '/api/v1/agent/config',
+      headers: auth,
+    });
     expect(config.statusCode).toBe(200);
     const body = config.json();
-    expect(body.interface).toMatchObject({ listenPort: 51820, addressV4: '10.95.0.1/20', subnetV4: '10.95.0.0/20' });
-    expect(body.peers).toEqual([{ publicKey: key, presharedKey: psk, allowedIps: expect.arrayContaining(['10.95.0.2/32']) }]);
+    expect(body.interface).toMatchObject({
+      listenPort: 51820,
+      addressV4: '10.95.0.1/20',
+      subnetV4: '10.95.0.0/20',
+    });
+    expect(body.peers).toEqual([
+      { publicKey: key, presharedKey: psk, allowedIps: expect.arrayContaining(['10.95.0.2/32']) },
+    ]);
 
     const cached = await h.app.inject({
       method: 'GET',
@@ -142,16 +203,29 @@ describe('heartbeat & configuration sync', () => {
       payload: { engaged: true, reason: 'abuse investigation' },
     });
     expect(kill.statusCode, kill.body).toBe(200);
-    const afterKill = await h.app.inject({ method: 'GET', url: '/api/v1/agent/config', headers: auth });
+    const afterKill = await h.app.inject({
+      method: 'GET',
+      url: '/api/v1/agent/config',
+      headers: auth,
+    });
     expect(afterKill.json().peers).toEqual([]);
-    const beat = await h.app.inject({ method: 'POST', url: '/api/v1/agent/heartbeat', headers: auth, payload: heartbeatBody() });
+    const beat = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/agent/heartbeat',
+      headers: auth,
+      payload: heartbeatBody(),
+    });
     expect(beat.json().killSwitch).toBe(true);
   });
 
   it('excludes peers of suspended users', async () => {
     const { admin, server, enrollmentToken } = await enroll();
     const { nodeToken } = (
-      await h.app.inject({ method: 'POST', url: '/api/v1/agent/register', payload: registerPayload(enrollmentToken) })
+      await h.app.inject({
+        method: 'POST',
+        url: '/api/v1/agent/register',
+        payload: registerPayload(enrollmentToken),
+      })
     ).json();
     await h.app.inject({
       method: 'POST',
@@ -164,7 +238,11 @@ describe('heartbeat & configuration sync', () => {
     const provisioned = await call(h, user, {
       method: 'POST',
       url: '/api/v1/wireguard/config',
-      payload: { deviceId: device.id, serverId: server.id, publicKey: generateWireGuardKeyPair().publicKey },
+      payload: {
+        deviceId: device.id,
+        serverId: server.id,
+        publicKey: generateWireGuardKeyPair().publicKey,
+      },
     });
     expect(provisioned.statusCode, provisioned.body).toBe(200);
     const suspend = await call(h, admin, {
@@ -173,7 +251,11 @@ describe('heartbeat & configuration sync', () => {
       payload: { reason: 'Terms of service violation' },
     });
     expect(suspend.statusCode).toBe(204);
-    const config = await h.app.inject({ method: 'GET', url: '/api/v1/agent/config', headers: { authorization: `Bearer ${nodeToken}` } });
+    const config = await h.app.inject({
+      method: 'GET',
+      url: '/api/v1/agent/config',
+      headers: { authorization: `Bearer ${nodeToken}` },
+    });
     expect(config.json().peers).toEqual([]);
     const peer = await h.db.vPNPeer.findFirstOrThrow();
     expect(peer).toMatchObject({ status: 'DISABLED', disabledReason: 'SUSPENDED' });

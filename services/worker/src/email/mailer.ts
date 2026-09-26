@@ -21,7 +21,13 @@ export class SmtpMailer implements Mailer {
   }
 
   async send(to: string, email: RenderedEmail): Promise<void> {
-    await this.transport.sendMail({ from: this.env.MAIL_FROM, to, subject: email.subject, text: email.text, html: email.html });
+    await this.transport.sendMail({
+      from: this.env.MAIL_FROM,
+      to,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+    });
   }
 
   async verify(): Promise<boolean> {

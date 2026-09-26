@@ -37,7 +37,9 @@ export class PartnerProvider implements VPNProvider {
   constructor(private readonly client: PartnerApiClient | null = null) {}
 
   get displayName(): string {
-    return this.client ? `Partner network (${this.client.partnerName})` : 'Partner network (not configured)';
+    return this.client
+      ? `Partner network (${this.client.partnerName})`
+      : 'Partner network (not configured)';
   }
 
   supports(protocol: VpnProtocol): boolean {
@@ -49,9 +51,13 @@ export class PartnerProvider implements VPNProvider {
   }
 
   async provision(request: ProvisionRequest): Promise<ProvisionResult> {
-    if (!this.client) throw serviceUnavailable('provider_not_configured', 'This location is not available');
+    if (!this.client)
+      throw serviceUnavailable('provider_not_configured', 'This location is not available');
     if (!request.publicKey) {
-      throw serviceUnavailable('client_key_required', 'Partner locations require a client generated key');
+      throw serviceUnavailable(
+        'client_key_required',
+        'Partner locations require a client generated key',
+      );
     }
     const result = await this.client.provisionWireGuardPeer({
       externalUserRef: request.userId,
@@ -88,7 +94,8 @@ export class PartnerProvider implements VPNProvider {
   }
 
   async revokePeer(peerRef: string): Promise<void> {
-    if (!this.client) throw serviceUnavailable('provider_not_configured', 'Partner provider is not configured');
+    if (!this.client)
+      throw serviceUnavailable('provider_not_configured', 'Partner provider is not configured');
     await this.client.revokePeer(peerRef);
   }
 }

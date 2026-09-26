@@ -52,10 +52,22 @@ export class AccountService {
   ): Promise<void> {
     const user = await this.getUser(userId);
     await this.assertPassword(user, currentPassword);
-    await this.db.user.update({ where: { id: userId }, data: { passwordHash: await hashPassword(newPassword) } });
+    await this.db.user.update({
+      where: { id: userId },
+      data: { passwordHash: await hashPassword(newPassword) },
+    });
     await revokeUserSessions(this.db, this.redis, userId, 'password_changed', currentSessionId);
-    await recordSecurityEvent(this.db, { userId, type: 'PASSWORD_CHANGED', severity: 'MEDIUM', ...meta });
-    await this.mail.send({ template: 'password-changed', to: user.email, data: { time: this.clock.now().toISOString() } });
+    await recordSecurityEvent(this.db, {
+      userId,
+      type: 'PASSWORD_CHANGED',
+      severity: 'MEDIUM',
+      ...meta,
+    });
+    await this.mail.send({
+      template: 'password-changed',
+      to: user.email,
+      data: { time: this.clock.now().toISOString() },
+    });
   }
 
   async listSessions(userId: string, currentSessionId: string): Promise<SessionDto[]> {
@@ -79,11 +91,21 @@ export class AccountService {
     const session = await this.db.session.findFirst({ where: { id: sessionId, userId } });
     if (!session) throw notFound('Session');
     await this.sessions.revoke(session.id, 'user_revoked');
-    await recordSecurityEvent(this.db, { userId, type: 'SESSION_REVOKED', metadata: { sessionId } });
+    await recordSecurityEvent(this.db, {
+      userId,
+      type: 'SESSION_REVOKED',
+      metadata: { sessionId },
+    });
   }
 
   async revokeOtherSessions(userId: string, currentSessionId: string): Promise<number> {
-    const count = await revokeUserSessions(this.db, this.redis, userId, 'user_revoked_all', currentSessionId);
+    const count = await revokeUserSessions(
+      this.db,
+      this.redis,
+      userId,
+      'user_revoked_all',
+      currentSessionId,
+    );
     await recordSecurityEvent(this.db, { userId, type: 'SESSION_REVOKED', metadata: { count } });
     return count;
   }
@@ -109,7 +131,11 @@ export class AccountService {
    * GDPR deletion: personal data is removed/anonymised, VPN access revoked.
    * Invoices and payments are retained (anonymised user) for statutory accounting.
    */
-  async deleteAccount(userId: string, password: string, meta: { ipAddress: string; userAgent: string | null }): Promise<void> {
+  async deleteAccount(
+    userId: string,
+    password: string,
+    meta: { ipAddress: string; userAgent: string | null },
+  ): Promise<void> {
     const user = await this.getUser(userId);
     await this.assertPassword(user, password);
     for (const hook of this.deletionHooks) await hook.beforeAccountDeletion(userId);
@@ -119,7 +145,11 @@ export class AccountService {
     await this.db.$transaction(async (tx) => {
       await tx.vPNConnection.updateMany({
         where: { userId, status: { in: ['CONNECTING', 'CONNECTED'] } },
-        data: { status: 'DISCONNECTED', endedAt: this.clock.now(), disconnectReason: 'account_deleted' },
+        data: {
+          status: 'DISCONNECTED',
+          endedAt: this.clock.now(),
+          disconnectReason: 'account_deleted',
+        },
       });
       await tx.device.deleteMany({ where: { userId } });
       await tx.userFavorite.deleteMany({ where: { userId } });

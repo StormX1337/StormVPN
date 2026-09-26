@@ -1,18 +1,28 @@
 import type * as React from 'react';
 import { cn } from '../lib/cn';
 
-export function Separator({ className, orientation = 'horizontal' }: { className?: string; orientation?: 'horizontal' | 'vertical' }) {
+export function Separator({
+  className,
+  orientation = 'horizontal',
+}: {
+  className?: string;
+  orientation?: 'horizontal' | 'vertical';
+}) {
   return (
     <div
       role="separator"
       aria-orientation={orientation}
-      className={cn('shrink-0 bg-border', orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px', className)}
+      className={cn(
+        'bg-border shrink-0',
+        orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
+        className,
+      )}
     />
   );
 }
 
 export function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
-  return <div className={cn('animate-pulse rounded-md bg-muted', className)} {...props} />;
+  return <div className={cn('bg-muted animate-pulse rounded-md', className)} {...props} />;
 }
 
 export function Spinner({ className }: { className?: string }) {
@@ -20,12 +30,19 @@ export function Spinner({ className }: { className?: string }) {
     <span
       role="status"
       aria-label="Loading"
-      className={cn('inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent', className)}
+      className={cn(
+        'inline-block size-4 animate-spin rounded-full border-2 border-current border-r-transparent',
+        className,
+      )}
     />
   );
 }
 
-export function Alert({ className, variant = 'default', ...props }: React.ComponentProps<'div'> & { variant?: 'default' | 'warning' | 'destructive' | 'success' }) {
+export function Alert({
+  className,
+  variant = 'default',
+  ...props
+}: React.ComponentProps<'div'> & { variant?: 'default' | 'warning' | 'destructive' | 'success' }) {
   return (
     <div
       role="alert"
@@ -43,5 +60,10 @@ export function Alert({ className, variant = 'default', ...props }: React.Compon
 }
 
 export function Kbd({ className, ...props }: React.ComponentProps<'kbd'>) {
-  return <kbd className={cn('rounded border bg-muted px-1.5 py-0.5 font-mono text-[11px]', className)} {...props} />;
+  return (
+    <kbd
+      className={cn('bg-muted rounded border px-1.5 py-0.5 font-mono text-[11px]', className)}
+      {...props}
+    />
+  );
 }

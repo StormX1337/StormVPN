@@ -59,7 +59,10 @@ export function ConnectionView() {
 
   return (
     <>
-      <PageHeader title="Connection" description="Live WireGuard session details reported by the VPN node." />
+      <PageHeader
+        title="Connection"
+        description="Live WireGuard session details reported by the VPN node."
+      />
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -75,11 +78,14 @@ export function ConnectionView() {
             <>
               <dl>
                 <Row label="Server">
-                  <CountryFlag code={connection.server.countryCode} /> {connection.server.name} · {connection.server.city}
+                  <CountryFlag code={connection.server.countryCode} /> {connection.server.name} ·{' '}
+                  {connection.server.city}
                 </Row>
                 <Row label="Endpoint">{connection.server.publicIpv4}:51820 (UDP)</Row>
                 <Row label="WireGuard status">
-                  {connection.lastHandshakeAt ? `Handshake ${formatRelative(connection.lastHandshakeAt)}` : 'No handshake yet'}
+                  {connection.lastHandshakeAt
+                    ? `Handshake ${formatRelative(connection.lastHandshakeAt)}`
+                    : 'No handshake yet'}
                 </Row>
                 <Row label="Connected since">{formatDateTime(connection.connectedAt)}</Row>
                 <Row label="Session duration">
@@ -92,7 +98,11 @@ export function ConnectionView() {
                 <Row label="Device">{connection.deviceName ?? 'Config file'}</Row>
               </dl>
               <div>
-                <Button variant="outline" disabled={disconnect.isPending} onClick={() => disconnect.mutate(connection.id)}>
+                <Button
+                  variant="outline"
+                  disabled={disconnect.isPending}
+                  onClick={() => disconnect.mutate(connection.id)}
+                >
                   <Power /> End session
                 </Button>
               </div>
@@ -116,11 +126,14 @@ export function ConnectionView() {
               <CardTitle>Kill switch & DNS</CardTitle>
               <CardDescription>Enforced by the client on your device</CardDescription>
             </div>
-            <ShieldAlert className="size-4 text-muted-foreground" />
+            <ShieldAlert className="text-muted-foreground size-4" />
           </CardHeader>
           <dl>
             <Row label="Kill switch">
-              <StatusBadge tone={status?.killSwitch.supportedByClient ? 'good' : 'warning'} label={status?.killSwitch.supportedByClient ? 'Managed by app' : 'Configure in app'} />
+              <StatusBadge
+                tone={status?.killSwitch.supportedByClient ? 'good' : 'warning'}
+                label={status?.killSwitch.supportedByClient ? 'Managed by app' : 'Configure in app'}
+              />
             </Row>
             <Row label="DNS leak protection">
               <StatusBadge tone="good" label="StormVPN DNS" />
@@ -132,14 +145,15 @@ export function ConnectionView() {
           <Alert className="text-xs">
             <ShieldAlert />
             <span>
-              Web configs route all IPv4 + IPv6 traffic and DNS through the tunnel. In the WireGuard app enable “Block untunneled traffic” for a system kill switch.
+              Web configs route all IPv4 + IPv6 traffic and DNS through the tunnel. In the WireGuard
+              app enable “Block untunneled traffic” for a system kill switch.
             </span>
           </Alert>
         </Card>
       </div>
       <Card className="p-0">
         <div className="flex items-center gap-2 px-5 pt-5">
-          <History className="size-4 text-muted-foreground" />
+          <History className="text-muted-foreground size-4" />
           <h3 className="text-sm font-semibold">Recent sessions</h3>
         </div>
         <Table>
@@ -162,10 +176,18 @@ export function ConnectionView() {
                   <TableCell>
                     <CountryFlag code={item.server.countryCode} /> {item.server.name}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{item.deviceName ?? 'Config file'}</TableCell>
-                  <TableCell className="text-muted-foreground">{formatDateTime(item.startedAt)}</TableCell>
-                  <TableCell className="tabular">{item.connectedAt ? formatDuration((end - start) / 1000) : '—'}</TableCell>
-                  <TableCell className="tabular text-muted-foreground">{formatBytes(item.rxBytes + item.txBytes)}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {item.deviceName ?? 'Config file'}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {formatDateTime(item.startedAt)}
+                  </TableCell>
+                  <TableCell className="tabular">
+                    {item.connectedAt ? formatDuration((end - start) / 1000) : '—'}
+                  </TableCell>
+                  <TableCell className="tabular text-muted-foreground">
+                    {formatBytes(item.rxBytes + item.txBytes)}
+                  </TableCell>
                   <TableCell>
                     <StatusBadge status={item.status} />
                   </TableCell>
@@ -174,7 +196,7 @@ export function ConnectionView() {
             })}
             {history?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
                   No sessions yet
                 </TableCell>
               </TableRow>

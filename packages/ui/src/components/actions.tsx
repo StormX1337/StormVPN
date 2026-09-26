@@ -4,9 +4,20 @@ import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
 import type * as React from 'react';
 import { Button, type ButtonProps } from './button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './dialog';
 
-export function CopyButton({ value, label = 'Copy', ...props }: { value: string; label?: string } & Omit<ButtonProps, 'onClick' | 'value'>) {
+export function CopyButton({
+  value,
+  label = 'Copy',
+  ...props
+}: { value: string; label?: string } & Omit<ButtonProps, 'onClick' | 'value'>) {
   const [copied, setCopied] = useState(false);
   return (
     <Button
@@ -37,7 +48,17 @@ export interface ConfirmDialogProps {
   children?: React.ReactNode;
 }
 
-export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel = 'Confirm', destructive, pending, onConfirm, children }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  confirmLabel = 'Confirm',
+  destructive,
+  pending,
+  onConfirm,
+  children,
+}: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -50,7 +71,11 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant={destructive ? 'destructive' : 'default'} disabled={pending} onClick={onConfirm}>
+          <Button
+            variant={destructive ? 'destructive' : 'default'}
+            disabled={pending}
+            onClick={onConfirm}
+          >
             {confirmLabel}
           </Button>
         </DialogFooter>

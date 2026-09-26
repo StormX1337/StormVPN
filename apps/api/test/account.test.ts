@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { call, createHarness, type Harness, PASSWORD, registerUser, seedPlans } from './helpers/harness';
+import {
+  call,
+  createHarness,
+  type Harness,
+  PASSWORD,
+  registerUser,
+  seedPlans,
+} from './helpers/harness';
 
 let h: Harness;
 
@@ -17,7 +24,11 @@ const native = { 'x-stormvpn-client': 'native' };
 describe('user profile & account security', () => {
   it('reads and updates the profile', async () => {
     const session = await registerUser(h, 'profile@example.com');
-    const update = await call(h, session, { method: 'PATCH', url: '/api/v1/user', payload: { name: 'Storm Rider', preferredCountry: 'nl' } });
+    const update = await call(h, session, {
+      method: 'PATCH',
+      url: '/api/v1/user',
+      payload: { name: 'Storm Rider', preferredCountry: 'nl' },
+    });
     expect(update.json()).toMatchObject({ name: 'Storm Rider', preferredCountry: 'NL' });
     const me = await call(h, session, { method: 'GET', url: '/api/v1/user' });
     expect(me.json()).not.toHaveProperty('passwordHash');
@@ -37,9 +48,16 @@ describe('user profile & account security', () => {
     expect(list.json()).toHaveLength(2);
     expect(list.json().filter((item: { current: boolean }) => item.current)).toHaveLength(1);
 
-    const revokeOthers = await call(h, session, { method: 'DELETE', url: '/api/v1/account/sessions' });
+    const revokeOthers = await call(h, session, {
+      method: 'DELETE',
+      url: '/api/v1/account/sessions',
+    });
     expect(revokeOthers.json().revoked).toBe(1);
-    const secondMe = await call(h, { token: secondToken, userId: session.userId }, { method: 'GET', url: '/api/v1/user' });
+    const secondMe = await call(
+      h,
+      { token: secondToken, userId: session.userId },
+      { method: 'GET', url: '/api/v1/user' },
+    );
     expect(secondMe.statusCode).toBe(401);
     expect((await call(h, session, { method: 'GET', url: '/api/v1/user' })).statusCode).toBe(200);
   });
@@ -58,8 +76,13 @@ describe('user profile & account security', () => {
       payload: { currentPassword: PASSWORD, newPassword: 'another secure passphrase' },
     });
     expect(ok.statusCode).toBe(204);
-    const events = await call(h, session, { method: 'GET', url: '/api/v1/account/security-events' });
-    expect(events.json().map((event: { type: string }) => event.type)).toContain('PASSWORD_CHANGED');
+    const events = await call(h, session, {
+      method: 'GET',
+      url: '/api/v1/account/security-events',
+    });
+    expect(events.json().map((event: { type: string }) => event.type)).toContain(
+      'PASSWORD_CHANGED',
+    );
     expect(h.mail.last('password-changed', 'pw@example.com')).toBeDefined();
   });
 

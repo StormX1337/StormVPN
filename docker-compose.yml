@@ -1,0 +1,190 @@
+# StormVPN – development stack
+#
+#   cp .env.example .env   # fill JWT_ACCESS_SECRET + DATA_ENCRYPTION_KEY
+#   docker compose up -d --build
+#   docker compose run --rm migrate pnpm exec prisma db seed   # demo data (optional)
+#   open http://localhost:8080  (admin: /admin, mail: http://localhost:8025)
+#
+# Monitoring:  docker compose --profile monitoring up -d  → Grafana http://localhost:3002
+# The VPN node agent is deployed separately on each VPN host (docs/NODE-SETUP.md).
+
+name: stormvpn
+
+x-node-service: &node-service
+  restart: unless-stopped
+  env_file: .env
+  environment: &node-env
+    NODE_ENV: production
+    LOG_PRETTY: 'false'
+    DATABASE_URL: postgresql://${POSTGRES_USER:-stormvpn}:${POSTGRES_PASSWORD:-stormvpn_dev_password}@postgres:5432/${POSTGRES_DB:-stormvpn}
+    REDIS_URL: redis://redis:6379/0
+    APP_URL: ${PUBLIC_URL:-http://localhost:8080}
+    ADMIN_URL: ${PUBLIC_URL:-http://localhost:8080}/admin
+    CORS_ORIGINS: ${PUBLIC_URL:-http://localhost:8080}
+    SMTP_HOST: mailpit
+    SMTP_PORT: '1025'
+  depends_on:
+    postgres: { condition: service_healthy }
+    redis: { condition: service_healthy }
+    migrate: { condition: service_completed_successfully }
+  networks: [backend]
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-stormvpn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stormvpn_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-stormvpn}
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    ports: ['127.0.0.1:5432:5432']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks: [backend]
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # BullMQ requires noeviction; AOF keeps queues across restarts.
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes: [redis-data:/data]
+    ports: ['127.0.0.1:6379:6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [backend]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports: ['127.0.0.1:8025:8025']
+    networks: [backend]
+
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/node-service.Dockerfile
+      target: migrator
+      args: { PACKAGE: '@stormvpn/api' }
+    image: stormvpn/migrate:dev
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-stormvpn}:${POSTGRES_PASSWORD:-stormvpn_dev_password}@postgres:5432/${POSTGRES_DB:-stormvpn}
+      NODE_ENV: development
+    depends_on:
+      postgres: { condition: service_healthy }
+    networks: [backend]
+
+  api:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: infra/docker/node-service.Dockerfile
+      args: { PACKAGE: '@stormvpn/api', PORT: '4000' }
+    image: stormvpn/api:dev
+    environment:
+      <<: *node-env
+      PORT: '4000'
+      TRUST_PROXY: 'uniquelocal'
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    expose: ['4000']
+
+  worker:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: infra/docker/node-service.Dockerfile
+      args: { PACKAGE: '@stormvpn/worker', PORT: '4100' }
+    image: stormvpn/worker:dev
+    environment:
+      <<: *node-env
+      HEALTH_PORT: '4100'
+      HEALTH_PATH: /health
+
+  scheduler:
+    <<: *node-service
+    build:
+      context: .
+      dockerfile: infra/docker/node-service.Dockerfile
+      args: { PACKAGE: '@stormvpn/scheduler', PORT: '4200' }
+    image: stormvpn/scheduler:dev
+    environment:
+      <<: *node-env
+      HEALTH_PORT: '4200'
+      HEALTH_PATH: /health
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/next-app.Dockerfile
+      args: { PACKAGE: '@stormvpn/web', APP_PATH: apps/web, PORT: '3000' }
+    image: stormvpn/web:dev
+    restart: unless-stopped
+    depends_on: [api]
+    networks: [backend]
+
+  admin:
+    build:
+      context: .
+      dockerfile: infra/docker/next-app.Dockerfile
+      args: { PACKAGE: '@stormvpn/admin', APP_PATH: apps/admin, PORT: '3001' }
+    image: stormvpn/admin:dev
+    restart: unless-stopped
+    depends_on: [api]
+    networks: [backend]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ['${HTTP_PORT:-8080}:80']
+    volumes:
+      - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./infra/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./infra/nginx/snippets:/etc/nginx/snippets:ro
+    depends_on: [api, web, admin]
+    networks: [backend]
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./infra/monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports: ['127.0.0.1:9090:9090']
+    networks: [backend]
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: [monitoring]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-change-this-grafana-password}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+    volumes:
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports: ['127.0.0.1:3002:3000']
+    depends_on: [prometheus]
+    networks: [backend]
+
+networks:
+  backend: {}
+
+volumes:
+  postgres-data: {}
+  redis-data: {}
+  prometheus-data: {}
+  grafana-data: {}

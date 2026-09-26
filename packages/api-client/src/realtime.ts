@@ -9,7 +9,10 @@ export interface RealtimeOptions {
 }
 
 /** Auto-reconnecting WebSocket with exponential backoff and keep-alive pings. */
-export function connectRealtime(options: RealtimeOptions): { close(): void; send(message: RealtimeClientMessage): void } {
+export function connectRealtime(options: RealtimeOptions): {
+  close(): void;
+  send(message: RealtimeClientMessage): void;
+} {
   const Impl = options.WebSocketImpl ?? globalThis.WebSocket;
   const url =
     options.url ??
@@ -27,7 +30,10 @@ export function connectRealtime(options: RealtimeOptions): { close(): void; send
     socket.onopen = () => {
       attempt = 0;
       options.onStatus?.('open');
-      ping = setInterval(() => socket?.readyState === 1 && socket.send(JSON.stringify({ type: 'ping' })), 25_000);
+      ping = setInterval(
+        () => socket?.readyState === 1 && socket.send(JSON.stringify({ type: 'ping' })),
+        25_000,
+      );
     };
     socket.onmessage = (event) => {
       try {

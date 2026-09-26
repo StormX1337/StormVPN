@@ -11,7 +11,21 @@ export const PLATFORM_LABEL: Record<DevicePlatform, string> = {
   OTHER: 'Other',
 };
 
-export function PlatformIcon({ platform, className }: { platform: DevicePlatform; className?: string }) {
-  const Icon = { WINDOWS: Monitor, MACOS: Apple, LINUX: Terminal, ANDROID: Smartphone, IOS: Tablet, ROUTER: Router, OTHER: Laptop }[platform];
+export function PlatformIcon({
+  platform,
+  className,
+}: {
+  platform: DevicePlatform;
+  className?: string;
+}) {
+  const Icon = {
+    WINDOWS: Monitor,
+    MACOS: Apple,
+    LINUX: Terminal,
+    ANDROID: Smartphone,
+    IOS: Tablet,
+    ROUTER: Router,
+    OTHER: Laptop,
+  }[platform];
   return <Icon className={className} aria-hidden />;
 }

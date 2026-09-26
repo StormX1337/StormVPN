@@ -1,0 +1,12 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.log
+.git
+.env
+.env.*
+!.env.example
+packages/database/generated
+packages/database/.demo-nodes.json

@@ -24,25 +24,46 @@ describe('wg dump parser', () => {
     const status = parseWgDump(DUMP);
     expect(status.listenPort).toBe(51820);
     expect(status.peers).toHaveLength(2);
-    expect(status.peers[0]).toMatchObject({ publicKey: 'PEERA=', endpoint: '198.51.100.4:40211', latestHandshake: 1790000000, rxBytes: 1024, txBytes: 4096 });
+    expect(status.peers[0]).toMatchObject({
+      publicKey: 'PEERA=',
+      endpoint: '198.51.100.4:40211',
+      latestHandshake: 1790000000,
+      rxBytes: 1024,
+      txBytes: 4096,
+    });
     expect(status.peers[0]!.allowedIps).toEqual(['10.80.0.2/32', 'fd80:1::2/128']);
     expect(status.peers[1]).toMatchObject({ endpoint: null, latestHandshake: 0 });
   });
 });
 
 describe('config rendering', () => {
-  const peer = { publicKey: generateWireGuardKeyPair().publicKey, presharedKey: generateWireGuardKeyPair().publicKey, allowedIps: ['10.80.0.2/32'] };
+  const peer = {
+    publicKey: generateWireGuardKeyPair().publicKey,
+    presharedKey: generateWireGuardKeyPair().publicKey,
+    allowedIps: ['10.80.0.2/32'],
+  };
 
   it('renders a syncconf file', () => {
     const text = renderSyncConfig('PRIV=', 51820, [peer]);
     expect(text).toContain('[Interface]\nPrivateKey = PRIV=\nListenPort = 51820');
-    expect(text).toContain(`[Peer]\nPublicKey = ${peer.publicKey}\nPresharedKey = ${peer.presharedKey}\nAllowedIPs = 10.80.0.2/32`);
+    expect(text).toContain(
+      `[Peer]\nPublicKey = ${peer.publicKey}\nPresharedKey = ${peer.presharedKey}\nAllowedIPs = 10.80.0.2/32`,
+    );
   });
 
   it('refuses injection attempts from a compromised control plane', () => {
-    expect(() => renderSyncConfig('PRIV=', 51820, [{ ...peer, allowedIps: ['0.0.0.0/0\nPostUp = rm -rf /'] }])).toThrow(/unsafe/i);
     expect(() =>
-      renderInterfaceConfig('PRIV=', { listenPort: 51820, addressV4: '10.80.0.1/20; touch /tmp/x', addressV6: null, subnetV4: '', subnetV6: null, dns: [] }),
+      renderSyncConfig('PRIV=', 51820, [{ ...peer, allowedIps: ['0.0.0.0/0\nPostUp = rm -rf /'] }]),
+    ).toThrow(/unsafe/i);
+    expect(() =>
+      renderInterfaceConfig('PRIV=', {
+        listenPort: 51820,
+        addressV4: '10.80.0.1/20; touch /tmp/x',
+        addressV6: null,
+        subnetV4: '',
+        subnetV6: null,
+        dns: [],
+      }),
     ).toThrow(/unsafe/i);
   });
 });
@@ -69,12 +90,27 @@ describe('WgToolsManager', () => {
     const manager = new WgToolsManager('wg0', dir, runner, state, logger);
     const config: AgentConfigResponse = {
       revision: 3,
-      interface: { listenPort: 51820, addressV4: '10.80.0.1/20', addressV6: 'fd80:1::1/64', subnetV4: '10.80.0.0/20', subnetV6: 'fd80:1::/64', dns: [] },
-      peers: [{ publicKey: generateWireGuardKeyPair().publicKey, presharedKey: null, allowedIps: ['10.80.0.2/32'] }],
+      interface: {
+        listenPort: 51820,
+        addressV4: '10.80.0.1/20',
+        addressV6: 'fd80:1::1/64',
+        subnetV4: '10.80.0.0/20',
+        subnetV6: 'fd80:1::/64',
+        dns: [],
+      },
+      peers: [
+        {
+          publicKey: generateWireGuardKeyPair().publicKey,
+          presharedKey: null,
+          allowedIps: ['10.80.0.2/32'],
+        },
+      ],
     };
     await manager.apply(config);
 
-    const commands = runner.calls.map((call) => `${call.command} ${call.args.slice(0, 2).join(' ')}`);
+    const commands = runner.calls.map(
+      (call) => `${call.command} ${call.args.slice(0, 2).join(' ')}`,
+    );
     expect(commands).toContain('wg-quick up wg0');
     const sync = runner.calls.find((call) => call.args[0] === 'syncconf')!;
     expect(sync.file).toContain(config.peers[0]!.publicKey);

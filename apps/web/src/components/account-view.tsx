@@ -33,7 +33,8 @@ function ProfileCard() {
   const client = useQueryClient();
   const { data: user } = useMe();
   const update = useMutation({
-    mutationFn: (input: { name: string | null; preferredCountry: string | null }) => api.user.update(input),
+    mutationFn: (input: { name: string | null; preferredCountry: string | null }) =>
+      api.user.update(input),
     onSuccess: (updated) => {
       client.setQueryData(keys.me, updated);
       toast.success('Profile saved');
@@ -63,11 +64,19 @@ function ProfileCard() {
         <Field label="Name" htmlFor="name">
           <Input id="name" name="name" defaultValue={user.name ?? ''} />
         </Field>
-        <Field label="Email" htmlFor="email" hint={user.emailVerified ? 'Verified' : 'Not verified yet'}>
+        <Field
+          label="Email"
+          htmlFor="email"
+          hint={user.emailVerified ? 'Verified' : 'Not verified yet'}
+        >
           <Input id="email" value={user.email} disabled />
         </Field>
         <Field label="Preferred country" htmlFor="preferredCountry">
-          <NativeSelect id="preferredCountry" name="preferredCountry" defaultValue={user.preferredCountry ?? ''}>
+          <NativeSelect
+            id="preferredCountry"
+            name="preferredCountry"
+            defaultValue={user.preferredCountry ?? ''}
+          >
             <option value="">Automatic (nearest)</option>
             {COUNTRIES.map((country) => (
               <option key={country.code} value={country.code}>
@@ -89,7 +98,8 @@ function ProfileCard() {
 function PasswordCard() {
   const [error, setError] = useState<string>();
   const change = useMutation({
-    mutationFn: (input: { currentPassword: string; newPassword: string }) => api.account.changePassword(input),
+    mutationFn: (input: { currentPassword: string; newPassword: string }) =>
+      api.account.changePassword(input),
     onSuccess: () => toast.success('Password changed. Other sessions were signed out.'),
     onError: (caught) => setError(errorMessage(caught)),
   });
@@ -103,16 +113,29 @@ function PasswordCard() {
         onSubmit={(event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
-          const parsed = changePasswordSchema.safeParse({ currentPassword: form.get('currentPassword'), newPassword: form.get('newPassword') });
+          const parsed = changePasswordSchema.safeParse({
+            currentPassword: form.get('currentPassword'),
+            newPassword: form.get('newPassword'),
+          });
           if (!parsed.success) return setError(parsed.error.issues[0]!.message);
           setError(undefined);
           change.mutate(parsed.data, { onSuccess: () => event.currentTarget?.reset() });
         }}
       >
         <Field label="Current password" htmlFor="currentPassword">
-          <Input id="currentPassword" name="currentPassword" type="password" autoComplete="current-password" />
+          <Input
+            id="currentPassword"
+            name="currentPassword"
+            type="password"
+            autoComplete="current-password"
+          />
         </Field>
-        <Field label="New password" htmlFor="newPassword" error={error} hint="At least 12 characters">
+        <Field
+          label="New password"
+          htmlFor="newPassword"
+          error={error}
+          hint="At least 12 characters"
+        >
           <Input id="newPassword" name="newPassword" type="password" autoComplete="new-password" />
         </Field>
         <div>
@@ -137,7 +160,11 @@ function TwoFactorCard() {
     if (setup) void QRCode.toDataURL(setup.otpauthUrl, { margin: 1, width: 200 }).then(setQr);
   }, [setup]);
 
-  const begin = useMutation({ mutationFn: () => api.account.setupTwoFactor(), onSuccess: setSetup, onError: (error) => toast.error(errorMessage(error)) });
+  const begin = useMutation({
+    mutationFn: () => api.account.setupTwoFactor(),
+    onSuccess: setSetup,
+    onError: (error) => toast.error(errorMessage(error)),
+  });
   const enable = useMutation({
     mutationFn: () => api.account.enableTwoFactor(code),
     onSuccess: ({ backupCodes: codes }) => {
@@ -166,11 +193,16 @@ function TwoFactorCard() {
           <CardTitle>Two-factor authentication</CardTitle>
           <CardDescription>Protect your account with an authenticator app (TOTP).</CardDescription>
         </div>
-        <StatusBadge tone={user?.twoFactorEnabled ? 'good' : 'warning'} label={user?.twoFactorEnabled ? 'Enabled' : 'Disabled'} />
+        <StatusBadge
+          tone={user?.twoFactorEnabled ? 'good' : 'warning'}
+          label={user?.twoFactorEnabled ? 'Enabled' : 'Disabled'}
+        />
       </CardHeader>
       {backupCodes ? (
         <Alert variant="success" className="flex-col">
-          <p className="font-medium">Save your backup codes – each works once if you lose your phone.</p>
+          <p className="font-medium">
+            Save your backup codes – each works once if you lose your phone.
+          </p>
           <div className="grid grid-cols-2 gap-1 font-mono text-sm">
             {backupCodes.map((backupCode) => (
               <span key={backupCode}>{backupCode}</span>
@@ -186,24 +218,56 @@ function TwoFactorCard() {
       ) : user?.twoFactorEnabled ? (
         <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <Field label="Password" htmlFor="tfa-password">
-            <Input id="tfa-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+            <Input
+              id="tfa-password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </Field>
           <Field label="Code" htmlFor="tfa-disable-code">
-            <Input id="tfa-disable-code" inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value)} placeholder="123456" />
+            <Input
+              id="tfa-disable-code"
+              inputMode="numeric"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="123456"
+            />
           </Field>
-          <Button variant="outline" disabled={disable.isPending || !password || !code} onClick={() => disable.mutate()}>
+          <Button
+            variant="outline"
+            disabled={disable.isPending || !password || !code}
+            onClick={() => disable.mutate()}
+          >
             Disable 2FA
           </Button>
         </div>
       ) : setup ? (
         <div className="grid gap-4 sm:grid-cols-[auto_1fr]">
-          {qr ? <img src={qr} alt="Authenticator QR code" className="size-44 rounded-lg bg-white p-2" /> : <div className="size-44" />}
+          {qr ? (
+            <img src={qr} alt="Authenticator QR code" className="size-44 rounded-lg bg-white p-2" />
+          ) : (
+            <div className="size-44" />
+          )}
           <div className="space-y-3 text-sm">
-            <p className="text-muted-foreground">Scan the QR code with Google Authenticator, 1Password, Authy or similar, then enter the 6-digit code.</p>
+            <p className="text-muted-foreground">
+              Scan the QR code with Google Authenticator, 1Password, Authy or similar, then enter
+              the 6-digit code.
+            </p>
             <p className="font-mono text-xs break-all">{setup.secret}</p>
             <div className="flex gap-2">
-              <Input inputMode="numeric" value={code} onChange={(event) => setCode(event.target.value)} placeholder="123456" aria-label="Verification code" className="w-36" />
-              <Button disabled={enable.isPending || code.length !== 6} onClick={() => enable.mutate()}>
+              <Input
+                inputMode="numeric"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                placeholder="123456"
+                aria-label="Verification code"
+                className="w-36"
+              />
+              <Button
+                disabled={enable.isPending || code.length !== 6}
+                onClick={() => enable.mutate()}
+              >
                 Enable
               </Button>
             </div>
@@ -242,17 +306,26 @@ function SessionsCard() {
           <CardTitle>Active sessions</CardTitle>
           <CardDescription>Browsers and apps signed in to your account.</CardDescription>
         </div>
-        <Button size="sm" variant="outline" disabled={sessions.length < 2} onClick={() => revokeOthers.mutate()}>
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={sessions.length < 2}
+          onClick={() => revokeOthers.mutate()}
+        >
           Sign out others
         </Button>
       </CardHeader>
       <ul className="divide-y">
         {sessions.map((session) => (
           <li key={session.id} className="flex items-center gap-3 py-3 text-sm">
-            {session.clientType === 'NATIVE' ? <Smartphone className="size-4 text-muted-foreground" /> : <Laptop className="size-4 text-muted-foreground" />}
+            {session.clientType === 'NATIVE' ? (
+              <Smartphone className="text-muted-foreground size-4" />
+            ) : (
+              <Laptop className="text-muted-foreground size-4" />
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{session.userAgent ?? 'Unknown client'}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {session.ipAddress} · active {formatRelative(session.lastUsedAt)}
               </p>
             </div>
@@ -272,7 +345,12 @@ function SessionsCard() {
 
 function SecurityLogCard() {
   const { data: events = [] } = useSecurityEvents();
-  const tone = (event: SecurityEventDto) => (event.severity === 'HIGH' || event.severity === 'CRITICAL' ? 'critical' : event.severity === 'MEDIUM' ? 'warning' : 'neutral');
+  const tone = (event: SecurityEventDto) =>
+    event.severity === 'HIGH' || event.severity === 'CRITICAL'
+      ? 'critical'
+      : event.severity === 'MEDIUM'
+        ? 'warning'
+        : 'neutral';
   return (
     <Card>
       <CardHeader>
@@ -280,14 +358,14 @@ function SecurityLogCard() {
           <CardTitle>Security log</CardTitle>
           <CardDescription>Sign-ins and security relevant changes.</CardDescription>
         </div>
-        <ShieldCheck className="size-4 text-muted-foreground" />
+        <ShieldCheck className="text-muted-foreground size-4" />
       </CardHeader>
       <ul className="max-h-80 divide-y overflow-y-auto">
         {events.map((event) => (
           <li key={event.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
             <div>
               <p className="font-medium">{humanize(event.type)}</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 {formatDateTime(event.createdAt)}
                 {event.ipAddress ? ` · ${event.ipAddress}` : ''}
               </p>
@@ -295,7 +373,9 @@ function SecurityLogCard() {
             <StatusBadge tone={tone(event)} label={humanize(event.severity)} />
           </li>
         ))}
-        {events.length === 0 ? <li className="py-6 text-center text-sm text-muted-foreground">No events yet</li> : null}
+        {events.length === 0 ? (
+          <li className="text-muted-foreground py-6 text-center text-sm">No events yet</li>
+        ) : null}
       </ul>
     </Card>
   );
@@ -314,7 +394,9 @@ function DangerZone() {
       <CardHeader>
         <div>
           <CardTitle>Delete account</CardTitle>
-          <CardDescription>Cancels your subscription, revokes all devices and removes personal data.</CardDescription>
+          <CardDescription>
+            Cancels your subscription, revokes all devices and removes personal data.
+          </CardDescription>
         </div>
         <Button variant="destructive" size="sm" onClick={() => setOpen(true)}>
           Delete account
@@ -331,7 +413,12 @@ function DangerZone() {
         onConfirm={() => remove.mutate()}
       >
         <Field label="Confirm with your password" htmlFor="delete-password">
-          <Input id="delete-password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
+          <Input
+            id="delete-password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
         </Field>
       </ConfirmDialog>
     </Card>

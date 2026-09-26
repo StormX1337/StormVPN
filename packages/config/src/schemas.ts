@@ -2,12 +2,12 @@ import { z } from 'zod';
 import { envBoolean, envList, envSecret } from './env';
 
 const nodeEnv = z.enum(['development', 'test', 'production']).default('development');
-const logLevel = z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info');
-const base64Key32 = z
-  .string()
-  .refine((value) => Buffer.from(value, 'base64').length === 32, {
-    message: 'must be 32 bytes encoded as base64 (openssl rand -base64 32)',
-  });
+const logLevel = z
+  .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+  .default('info');
+const base64Key32 = z.string().refine((value) => Buffer.from(value, 'base64').length === 32, {
+  message: 'must be 32 bytes encoded as base64 (openssl rand -base64 32)',
+});
 
 const sharedInfra = {
   NODE_ENV: nodeEnv,
@@ -67,7 +67,11 @@ export const apiEnvSchema = z
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'production') {
       if (!env.COOKIE_SECURE) {
-        ctx.addIssue({ code: 'custom', path: ['COOKIE_SECURE'], message: 'must be true in production' });
+        ctx.addIssue({
+          code: 'custom',
+          path: ['COOKIE_SECURE'],
+          message: 'must be true in production',
+        });
       }
       if (env.STRIPE_SECRET_KEY && !env.STRIPE_WEBHOOK_SECRET) {
         ctx.addIssue({

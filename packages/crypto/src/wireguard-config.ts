@@ -26,7 +26,9 @@ function assertSafe(label: string, value: string): string {
  */
 export function renderWireGuardConfig(input: WireGuardClientConfigInput): string {
   const lines = ['[Interface]'];
-  lines.push(`PrivateKey = ${assertSafe('privateKey', input.privateKey ?? PRIVATE_KEY_PLACEHOLDER)}`);
+  lines.push(
+    `PrivateKey = ${assertSafe('privateKey', input.privateKey ?? PRIVATE_KEY_PLACEHOLDER)}`,
+  );
   lines.push(`Address = ${input.addresses.map((a) => assertSafe('address', a)).join(', ')}`);
   if (input.dns.length > 0) {
     lines.push(`DNS = ${input.dns.map((d) => assertSafe('dns', d)).join(', ')}`);
@@ -34,7 +36,8 @@ export function renderWireGuardConfig(input: WireGuardClientConfigInput): string
   if (input.mtu) lines.push(`MTU = ${input.mtu}`);
   lines.push('', '[Peer]');
   lines.push(`PublicKey = ${assertSafe('serverPublicKey', input.serverPublicKey)}`);
-  if (input.presharedKey) lines.push(`PresharedKey = ${assertSafe('presharedKey', input.presharedKey)}`);
+  if (input.presharedKey)
+    lines.push(`PresharedKey = ${assertSafe('presharedKey', input.presharedKey)}`);
   lines.push(`AllowedIPs = ${input.allowedIps.map((a) => assertSafe('allowedIps', a)).join(', ')}`);
   lines.push(`Endpoint = ${assertSafe('endpoint', input.endpoint)}`);
   if (input.persistentKeepalive && input.persistentKeepalive > 0) {

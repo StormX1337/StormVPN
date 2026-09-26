@@ -54,11 +54,16 @@ export function SubscriptionView() {
   const onError = (error: unknown) => toast.error(errorMessage(error));
 
   const checkout = useMutation({
-    mutationFn: (planId: string) => api.billing.checkout({ planId, couponCode: coupon.trim() || undefined }),
+    mutationFn: (planId: string) =>
+      api.billing.checkout({ planId, couponCode: coupon.trim() || undefined }),
     onSuccess: ({ url }) => window.location.assign(url),
     onError,
   });
-  const portal = useMutation({ mutationFn: () => api.billing.portal(), onSuccess: ({ url }) => window.location.assign(url), onError });
+  const portal = useMutation({
+    mutationFn: () => api.billing.portal(),
+    onSuccess: ({ url }) => window.location.assign(url),
+    onError,
+  });
   const changePlan = useMutation({
     mutationFn: (planId: string) => api.billing.changePlan(planId),
     onSuccess: () => {
@@ -77,16 +82,27 @@ export function SubscriptionView() {
     },
     onError,
   });
-  const resume = useMutation({ mutationFn: () => api.billing.resume(), onSuccess: refresh, onError });
+  const resume = useMutation({
+    mutationFn: () => api.billing.resume(),
+    onSuccess: refresh,
+    onError,
+  });
   const validateCoupon = useMutation({
     mutationFn: () => api.billing.validateCoupon(coupon.trim()),
     onSuccess: (result) =>
-      toast.success(`Coupon valid: ${result.percentOff ? `${result.percentOff}% off` : formatCurrency(result.amountOffCents ?? 0, result.currency ?? 'eur')}`),
+      toast.success(
+        `Coupon valid: ${result.percentOff ? `${result.percentOff}% off` : formatCurrency(result.amountOffCents ?? 0, result.currency ?? 'eur')}`,
+      ),
     onError,
   });
 
   const actionFor = (plan: PlanDto) => {
-    if (plan.id === subscription?.plan.id) return <Button disabled variant="outline">Current plan</Button>;
+    if (plan.id === subscription?.plan.id)
+      return (
+        <Button disabled variant="outline">
+          Current plan
+        </Button>
+      );
     if (plan.isFree) {
       return paid ? (
         <Button variant="outline" onClick={() => setConfirmCancel(true)}>
@@ -107,8 +123,14 @@ export function SubscriptionView() {
       );
     }
     return (
-      <Button variant="brand" disabled={checkout.isPending} onClick={() => checkout.mutate(plan.id)}>
-        {overview?.trialEligible && plan.trialDays > 0 ? `Start ${plan.trialDays}-day trial` : 'Subscribe'}
+      <Button
+        variant="brand"
+        disabled={checkout.isPending}
+        onClick={() => checkout.mutate(plan.id)}
+      >
+        {overview?.trialEligible && plan.trialDays > 0
+          ? `Start ${plan.trialDays}-day trial`
+          : 'Subscribe'}
       </Button>
     );
   };
@@ -136,7 +158,13 @@ export function SubscriptionView() {
           <CardHeader>
             <div>
               <CardTitle>Current plan</CardTitle>
-              <CardDescription>{subscription ? (paid ? 'Billed via Stripe' : 'No payment required') : 'No active plan'}</CardDescription>
+              <CardDescription>
+                {subscription
+                  ? paid
+                    ? 'Billed via Stripe'
+                    : 'No payment required'
+                  : 'No active plan'}
+              </CardDescription>
             </div>
             {subscription ? <StatusBadge status={subscription.status} /> : null}
           </CardHeader>
@@ -145,30 +173,54 @@ export function SubscriptionView() {
           ) : subscription ? (
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
-                <p className="text-sm text-muted-foreground">Plan</p>
+                <p className="text-muted-foreground text-sm">Plan</p>
                 <p className="text-xl font-semibold">{subscription.plan.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {subscription.plan.isFree ? 'Free' : `${formatCurrency(subscription.plan.priceCents, subscription.plan.currency)} / ${subscription.plan.billingInterval.toLowerCase()}`}
+                <p className="text-muted-foreground text-sm">
+                  {subscription.plan.isFree
+                    ? 'Free'
+                    : `${formatCurrency(subscription.plan.priceCents, subscription.plan.currency)} / ${subscription.plan.billingInterval.toLowerCase()}`}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">{subscription.cancelAtPeriodEnd ? 'Ends on' : subscription.status === 'TRIALING' ? 'Trial ends' : 'Next payment'}</p>
-                <p className="font-medium">{formatDate(subscription.status === 'TRIALING' ? subscription.trialEnd : subscription.currentPeriodEnd)}</p>
+                <p className="text-muted-foreground text-sm">
+                  {subscription.cancelAtPeriodEnd
+                    ? 'Ends on'
+                    : subscription.status === 'TRIALING'
+                      ? 'Trial ends'
+                      : 'Next payment'}
+                </p>
+                <p className="font-medium">
+                  {formatDate(
+                    subscription.status === 'TRIALING'
+                      ? subscription.trialEnd
+                      : subscription.currentPeriodEnd,
+                  )}
+                </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Payment method</p>
+                <p className="text-muted-foreground text-sm">Payment method</p>
                 <p className="font-medium">
-                  {subscription.paymentMethod ? `${subscription.paymentMethod.brand.toUpperCase()} •••• ${subscription.paymentMethod.last4}` : '—'}
+                  {subscription.paymentMethod
+                    ? `${subscription.paymentMethod.brand.toUpperCase()} •••• ${subscription.paymentMethod.last4}`
+                    : '—'}
                 </p>
               </div>
               {paid ? (
                 <div className="sm:col-span-3">
                   {subscription.cancelAtPeriodEnd ? (
-                    <Button variant="outline" disabled={resume.isPending} onClick={() => resume.mutate()}>
+                    <Button
+                      variant="outline"
+                      disabled={resume.isPending}
+                      onClick={() => resume.mutate()}
+                    >
                       Resume subscription
                     </Button>
                   ) : (
-                    <Button variant="ghost" className="text-destructive" onClick={() => setConfirmCancel(true)}>
+                    <Button
+                      variant="ghost"
+                      className="text-destructive"
+                      onClick={() => setConfirmCancel(true)}
+                    >
                       Cancel subscription
                     </Button>
                   )}
@@ -176,7 +228,7 @@ export function SubscriptionView() {
               ) : null}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Choose a plan below to get started.</p>
+            <p className="text-muted-foreground text-sm">Choose a plan below to get started.</p>
           )}
         </Card>
         <Card>
@@ -191,18 +243,34 @@ export function SubscriptionView() {
                   {overview?.usage.devicesUsed ?? 0} / {subscription?.plan.maxDevices ?? 0}
                 </span>
               </div>
-              <LoadMeter value={((overview?.usage.devicesUsed ?? 0) / Math.max(1, subscription?.plan.maxDevices ?? 1)) * 100} showValue={false} label="Devices used" overloadThreshold={100} />
+              <LoadMeter
+                value={
+                  ((overview?.usage.devicesUsed ?? 0) /
+                    Math.max(1, subscription?.plan.maxDevices ?? 1)) *
+                  100
+                }
+                showValue={false}
+                label="Devices used"
+                overloadThreshold={100}
+              />
             </div>
             <div>
               <div className="mb-1 flex justify-between">
                 <span className="text-muted-foreground">Traffic</span>
                 <span className="tabular">
                   {formatBytes(overview?.usage.trafficUsedBytes ?? 0)}
-                  {traffic?.limitBytes ? ` / ${formatBytes(traffic.limitBytes, 0)}` : ' · unlimited'}
+                  {traffic?.limitBytes
+                    ? ` / ${formatBytes(traffic.limitBytes, 0)}`
+                    : ' · unlimited'}
                 </span>
               </div>
               {traffic?.limitBytes ? (
-                <LoadMeter value={((overview?.usage.trafficUsedBytes ?? 0) / traffic.limitBytes) * 100} showValue={false} label="Traffic used" overloadThreshold={100} />
+                <LoadMeter
+                  value={((overview?.usage.trafficUsedBytes ?? 0) / traffic.limitBytes) * 100}
+                  showValue={false}
+                  label="Traffic used"
+                  overloadThreshold={100}
+                />
               ) : null}
             </div>
             <div className="flex justify-between">
@@ -220,10 +288,20 @@ export function SubscriptionView() {
         {!paid ? (
           <div className="flex gap-2">
             <div className="relative">
-              <Tag className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input className="w-48 pl-9 uppercase" placeholder="Coupon code" value={coupon} onChange={(event) => setCoupon(event.target.value)} aria-label="Coupon code" />
+              <Tag className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+              <Input
+                className="w-48 pl-9 uppercase"
+                placeholder="Coupon code"
+                value={coupon}
+                onChange={(event) => setCoupon(event.target.value)}
+                aria-label="Coupon code"
+              />
             </div>
-            <Button variant="outline" disabled={!coupon.trim() || validateCoupon.isPending} onClick={() => validateCoupon.mutate()}>
+            <Button
+              variant="outline"
+              disabled={!coupon.trim() || validateCoupon.isPending}
+              onClick={() => validateCoupon.mutate()}
+            >
               Apply
             </Button>
           </div>
@@ -233,7 +311,7 @@ export function SubscriptionView() {
 
       <Card className="p-0">
         <div className="flex items-center gap-2 px-5 pt-5">
-          <Receipt className="size-4 text-muted-foreground" />
+          <Receipt className="text-muted-foreground size-4" />
           <h3 className="text-sm font-semibold">Invoices</h3>
         </div>
         <Table>
@@ -249,9 +327,15 @@ export function SubscriptionView() {
           <TableBody>
             {invoices.map((invoice) => (
               <TableRow key={invoice.id}>
-                <TableCell className="font-mono text-xs">{invoice.number ?? invoice.id.slice(0, 8)}</TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(invoice.createdAt)}</TableCell>
-                <TableCell className="tabular">{formatCurrency(invoice.amountDueCents, invoice.currency)}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {invoice.number ?? invoice.id.slice(0, 8)}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(invoice.createdAt)}
+                </TableCell>
+                <TableCell className="tabular">
+                  {formatCurrency(invoice.amountDueCents, invoice.currency)}
+                </TableCell>
                 <TableCell>
                   <StatusBadge status={invoice.status} />
                 </TableCell>
@@ -268,7 +352,7 @@ export function SubscriptionView() {
             ))}
             {invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
                   No invoices yet
                 </TableCell>
               </TableRow>

@@ -36,31 +36,46 @@ export class ControlPlaneClient {
     this.token = token;
   }
 
-  private async request<T>(method: string, path: string, body?: unknown, headers: Record<string, string> = {}): Promise<{ status: number; data: T | null; headers: Headers }> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    headers: Record<string, string> = {},
+  ): Promise<{ status: number; data: T | null; headers: Headers }> {
     let lastError: ApiError | undefined;
     for (let attempt = 0; attempt <= this.retries; attempt++) {
       try {
-        const response = await this.fetchImpl(`${this.baseUrl.replace(/\/$/, '')}/api/v1/agent${path}`, {
-          method,
-          headers: {
-            'content-type': 'application/json',
-            'user-agent': 'stormvpn-agent',
-            ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
-            ...headers,
+        const response = await this.fetchImpl(
+          `${this.baseUrl.replace(/\/$/, '')}/api/v1/agent${path}`,
+          {
+            method,
+            headers: {
+              'content-type': 'application/json',
+              'user-agent': 'stormvpn-agent',
+              ...(this.token ? { authorization: `Bearer ${this.token}` } : {}),
+              ...headers,
+            },
+            body: body === undefined ? undefined : JSON.stringify(body),
+            signal: AbortSignal.timeout(this.timeoutMs),
           },
-          body: body === undefined ? undefined : JSON.stringify(body),
-          signal: AbortSignal.timeout(this.timeoutMs),
-        });
+        );
         if (response.status === 304) return { status: 304, data: null, headers: response.headers };
         const text = await response.text();
         const json = text ? (JSON.parse(text) as unknown) : null;
         if (!response.ok) {
           const error = (json as { error?: { code?: string; message?: string } } | null)?.error;
-          throw new ApiError(response.status, error?.code ?? 'http_error', error?.message ?? `HTTP ${response.status}`);
+          throw new ApiError(
+            response.status,
+            error?.code ?? 'http_error',
+            error?.message ?? `HTTP ${response.status}`,
+          );
         }
         return { status: response.status, data: json as T, headers: response.headers };
       } catch (error) {
-        lastError = error instanceof ApiError ? error : new ApiError(0, 'network_error', (error as Error).message);
+        lastError =
+          error instanceof ApiError
+            ? error
+            : new ApiError(0, 'network_error', (error as Error).message);
         if (!lastError.retryable || attempt === this.retries) throw lastError;
         await sleep(Math.min(30_000, 500 * 2 ** attempt + Math.random() * 250));
       }
@@ -78,7 +93,8 @@ export class ControlPlaneClient {
 
   /** Returns null when the configuration is unchanged (ETag match). */
   async config(knownRevision: number | null): Promise<AgentConfigResponse | null> {
-    const headers: Record<string, string> = knownRevision !== null ? { 'if-none-match': `"rev-${knownRevision}"` } : {};
+    const headers: Record<string, string> =
+      knownRevision !== null ? { 'if-none-match': `"rev-${knownRevision}"` } : {};
     const response = await this.request<AgentConfigResponse>('GET', '/config', undefined, headers);
     return response.status === 304 ? null : response.data;
   }

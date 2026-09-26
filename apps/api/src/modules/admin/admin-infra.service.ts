@@ -8,7 +8,13 @@ import {
   startOfUtcDay,
   writeAuditLog,
 } from '@stormvpn/core';
-import { type Database, isUniqueViolation, type Prisma, type ServerStatus, toNumber } from '@stormvpn/database';
+import {
+  type Database,
+  isUniqueViolation,
+  type Prisma,
+  type ServerStatus,
+  toNumber,
+} from '@stormvpn/database';
 import type {
   AdminConnectionDto,
   AdminNodeDto,
@@ -32,7 +38,10 @@ export class AdminInfraService {
     private readonly db: Database,
     private readonly catalog: ServerCatalog,
     private readonly connections: ConnectionService,
-    private readonly env: Pick<ApiEnv, 'NODE_ENROLLMENT_TTL_HOURS' | 'APP_URL' | 'NODE_OFFLINE_AFTER_SECONDS'>,
+    private readonly env: Pick<
+      ApiEnv,
+      'NODE_ENROLLMENT_TTL_HOURS' | 'APP_URL' | 'NODE_OFFLINE_AFTER_SECONDS'
+    >,
     private readonly clock: Clock,
   ) {}
 
@@ -40,15 +49,32 @@ export class AdminInfraService {
 
   async listServers(): Promise<AdminServerDto[]> {
     const [servers, peerCounts] = await Promise.all([
-      this.db.vPNServer.findMany({ where: { deletedAt: null }, include: { node: true }, orderBy: { name: 'asc' } }),
-      this.db.vPNPeer.groupBy({ by: ['serverId'], where: { status: 'ACTIVE' }, _count: { _all: true } }),
+      this.db.vPNServer.findMany({
+        where: { deletedAt: null },
+        include: { node: true },
+        orderBy: { name: 'asc' },
+      }),
+      this.db.vPNPeer.groupBy({
+        by: ['serverId'],
+        where: { status: 'ACTIVE' },
+        _count: { _all: true },
+      }),
     ]);
     const counts = new Map(peerCounts.map((row) => [row.serverId, row._count._all]));
-    return servers.map((server) => toAdminServerDto(server, counts.get(server.id) ?? 0, server.node ? this.catalog.status(server) : null));
+    return servers.map((server) =>
+      toAdminServerDto(
+        server,
+        counts.get(server.id) ?? 0,
+        server.node ? this.catalog.status(server) : null,
+      ),
+    );
   }
 
   async getServer(id: string): Promise<AdminServerDto> {
-    const server = await this.db.vPNServer.findFirst({ where: { id, deletedAt: null }, include: { node: true } });
+    const server = await this.db.vPNServer.findFirst({
+      where: { id, deletedAt: null },
+      include: { node: true },
+    });
     if (!server) throw notFound('Server');
     const peers = await this.db.vPNPeer.count({ where: { serverId: id, status: 'ACTIVE' } });
     return toAdminServerDto(server, peers, server.node ? this.catalog.status(server) : null);
@@ -63,30 +89,50 @@ export class AdminInfraService {
     for (const other of others) {
       const otherRange = ipv4CidrRange(other.wgSubnetV4);
       if (!otherRange) continue;
-      const overlaps = range.network < otherRange.network + otherRange.size && otherRange.network < range.network + range.size;
-      if (overlaps) throw conflict('subnet_overlap', `Client subnet overlaps with ${other.name} (${other.wgSubnetV4})`);
+      const overlaps =
+        range.network < otherRange.network + otherRange.size &&
+        otherRange.network < range.network + range.size;
+      if (overlaps)
+        throw conflict(
+          'subnet_overlap',
+          `Client subnet overlaps with ${other.name} (${other.wgSubnetV4})`,
+        );
     }
   }
 
   async createServer(input: ServerCreateInput, actor: ActorContext): Promise<AdminServerDto> {
     await this.assertSubnetFree(input.wgSubnetV4);
     try {
-      const server = await this.db.vPNServer.create({ data: { ...input, dnsServers: input.dnsServers ?? [] } });
+      const server = await this.db.vPNServer.create({
+        data: { ...input, dnsServers: input.dnsServers ?? [] },
+      });
       this.catalog.invalidate();
-      await writeAuditLog(this.db, { ...actor, action: 'server.create', targetType: 'server', targetId: server.id, metadata: { name: server.name } });
+      await writeAuditLog(this.db, {
+        ...actor,
+        action: 'server.create',
+        targetType: 'server',
+        targetId: server.id,
+        metadata: { name: server.name },
+      });
       return this.getServer(server.id);
     } catch (error) {
-      if (isUniqueViolation(error)) throw conflict('server_exists', 'A server with this name or hostname already exists');
+      if (isUniqueViolation(error))
+        throw conflict('server_exists', 'A server with this name or hostname already exists');
       throw error;
     }
   }
 
-  async updateServer(id: string, input: ServerUpdateInput, actor: ActorContext): Promise<AdminServerDto> {
+  async updateServer(
+    id: string,
+    input: ServerUpdateInput,
+    actor: ActorContext,
+  ): Promise<AdminServerDto> {
     const existing = await this.db.vPNServer.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw notFound('Server');
     if (input.wgSubnetV4 && input.wgSubnetV4 !== existing.wgSubnetV4) {
       const peers = await this.db.vPNPeer.count({ where: { serverId: id } });
-      if (peers > 0) throw conflict('subnet_in_use', 'The client subnet cannot change while peers exist');
+      if (peers > 0)
+        throw conflict('subnet_in_use', 'The client subnet cannot change while peers exist');
       await this.assertSubnetFree(input.wgSubnetV4, id);
     }
     await this.db.$transaction(async (tx) => {
@@ -94,28 +140,54 @@ export class AdminInfraService {
       await bumpPeerRevision(tx, [id]);
     });
     this.catalog.invalidate();
-    await writeAuditLog(this.db, { ...actor, action: 'server.update', targetType: 'server', targetId: id, metadata: input as Record<string, unknown> });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'server.update',
+      targetType: 'server',
+      targetId: id,
+      metadata: input as Record<string, unknown>,
+    });
     return this.getServer(id);
   }
 
-  async setServerStatus(id: string, status: ServerStatus, actor: ActorContext): Promise<AdminServerDto> {
+  async setServerStatus(
+    id: string,
+    status: ServerStatus,
+    actor: ActorContext,
+  ): Promise<AdminServerDto> {
     await this.db.$transaction(async (tx) => {
       await tx.vPNServer.update({ where: { id }, data: { status } });
-      if (status === 'MAINTENANCE') await tx.vPNNode.updateMany({ where: { serverId: id }, data: { status: 'MAINTENANCE' } });
+      if (status === 'MAINTENANCE')
+        await tx.vPNNode.updateMany({ where: { serverId: id }, data: { status: 'MAINTENANCE' } });
       await bumpPeerRevision(tx, [id]);
     });
     this.catalog.invalidate();
-    await writeAuditLog(this.db, { ...actor, action: 'server.status', targetType: 'server', targetId: id, metadata: { status } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'server.status',
+      targetType: 'server',
+      targetId: id,
+      metadata: { status },
+    });
     return this.getServer(id);
   }
 
   /** Emergency stop: the node removes every peer on its next sync and no new users are assigned. */
-  async setKillSwitch(id: string, engaged: boolean, reason: string, actor: ActorContext): Promise<AdminServerDto> {
+  async setKillSwitch(
+    id: string,
+    engaged: boolean,
+    reason: string,
+    actor: ActorContext,
+  ): Promise<AdminServerDto> {
     const now = this.clock.now();
     await this.db.$transaction(async (tx) => {
       await tx.vPNServer.update({
         where: { id },
-        data: { killSwitchEngaged: engaged, killSwitchReason: engaged ? reason : null, peerRevision: { increment: 1 } },
+        data: {
+          killSwitchEngaged: engaged,
+          killSwitchReason: engaged ? reason : null,
+          peerRevision: { increment: 1 },
+        },
       });
       if (engaged) {
         await tx.vPNConnection.updateMany({
@@ -131,7 +203,13 @@ export class AdminInfraService {
       ipAddress: actor.ipAddress ?? null,
       metadata: { serverId: id, engaged, reason },
     });
-    await writeAuditLog(this.db, { ...actor, action: engaged ? 'server.kill_switch.engage' : 'server.kill_switch.release', targetType: 'server', targetId: id, metadata: { reason } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: engaged ? 'server.kill_switch.engage' : 'server.kill_switch.release',
+      targetType: 'server',
+      targetId: id,
+      metadata: { reason },
+    });
     return this.getServer(id);
   }
 
@@ -160,16 +238,32 @@ export class AdminInfraService {
       });
     }
     this.catalog.invalidate();
-    await writeAuditLog(this.db, { ...actor, action: 'server.delete', targetType: 'server', targetId: id, metadata: { name: server.name } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'server.delete',
+      targetType: 'server',
+      targetId: id,
+      metadata: { name: server.name },
+    });
   }
 
   async createEnrollmentToken(id: string, actor: ActorContext): Promise<EnrollmentTokenDto> {
     const server = await this.db.vPNServer.findFirst({ where: { id, deletedAt: null } });
     if (!server) throw notFound('Server');
     const token = generatePrefixedToken('sne', 32);
-    const expiresAt = new Date(this.clock.now().getTime() + this.env.NODE_ENROLLMENT_TTL_HOURS * 3600_000);
-    await this.db.vPNServer.update({ where: { id }, data: { enrollmentTokenHash: sha256Hex(token), enrollmentExpiresAt: expiresAt } });
-    await writeAuditLog(this.db, { ...actor, action: 'server.enrollment_token', targetType: 'server', targetId: id });
+    const expiresAt = new Date(
+      this.clock.now().getTime() + this.env.NODE_ENROLLMENT_TTL_HOURS * 3600_000,
+    );
+    await this.db.vPNServer.update({
+      where: { id },
+      data: { enrollmentTokenHash: sha256Hex(token), enrollmentExpiresAt: expiresAt },
+    });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'server.enrollment_token',
+      targetType: 'server',
+      targetId: id,
+    });
     const apiUrl = new URL(this.env.APP_URL).origin;
     return {
       serverId: id,
@@ -193,7 +287,8 @@ export class AdminInfraService {
   private withEffectiveStatus(dto: AdminNodeDto): AdminNodeDto {
     const stale =
       !dto.lastHeartbeatAt ||
-      this.clock.now().getTime() - new Date(dto.lastHeartbeatAt).getTime() > this.env.NODE_OFFLINE_AFTER_SECONDS * 1000;
+      this.clock.now().getTime() - new Date(dto.lastHeartbeatAt).getTime() >
+        this.env.NODE_OFFLINE_AFTER_SECONDS * 1000;
     return stale && dto.status !== 'MAINTENANCE' ? { ...dto, status: 'OFFLINE' } : dto;
   }
 
@@ -204,7 +299,10 @@ export class AdminInfraService {
     });
     if (!node) throw notFound('Node');
     const history = await this.db.nodeHeartbeat.findMany({
-      where: { nodeId: id, createdAt: { gte: new Date(this.clock.now().getTime() - 24 * 3600_000) } },
+      where: {
+        nodeId: id,
+        createdAt: { gte: new Date(this.clock.now().getTime() - 24 * 3600_000) },
+      },
       orderBy: { createdAt: 'asc' },
       take: 1440,
     });
@@ -228,14 +326,28 @@ export class AdminInfraService {
     if (!node) throw notFound('Node');
     await this.db.vPNNode.delete({ where: { id } });
     this.catalog.invalidate();
-    await writeAuditLog(this.db, { ...actor, action: 'node.deregister', targetType: 'node', targetId: id, metadata: { serverId: node.serverId } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'node.deregister',
+      targetType: 'node',
+      targetId: id,
+      metadata: { serverId: node.serverId },
+    });
   }
 
   // ── Connections & traffic ───────────────────────────────
 
-  async listConnections(query: { page: number; pageSize: number; status?: string; serverId?: string; userId?: string }): Promise<Paginated<AdminConnectionDto>> {
+  async listConnections(query: {
+    page: number;
+    pageSize: number;
+    status?: string;
+    serverId?: string;
+    userId?: string;
+  }): Promise<Paginated<AdminConnectionDto>> {
     const where: Prisma.VPNConnectionWhereInput = {
-      ...(query.status ? { status: query.status as never } : { status: { in: ['CONNECTING', 'CONNECTED'] } }),
+      ...(query.status
+        ? { status: query.status as never }
+        : { status: { in: ['CONNECTING', 'CONNECTED'] } }),
       ...(query.serverId ? { serverId: query.serverId } : {}),
       ...(query.userId ? { userId: query.userId } : {}),
     };
@@ -244,7 +356,11 @@ export class AdminInfraService {
         where,
         orderBy: { startedAt: 'desc' },
         ...pageArgs(query),
-        include: { user: { select: { email: true } }, server: { select: { name: true } }, device: { select: { name: true } } },
+        include: {
+          user: { select: { email: true } },
+          server: { select: { name: true } },
+          device: { select: { name: true } },
+        },
       }),
       this.db.vPNConnection.count({ where }),
     ]);
@@ -270,7 +386,12 @@ export class AdminInfraService {
 
   async terminateConnection(id: string, actor: ActorContext): Promise<void> {
     await this.connections.disconnect(null, id, 'admin_terminated');
-    await writeAuditLog(this.db, { ...actor, action: 'connection.terminate', targetType: 'connection', targetId: id });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'connection.terminate',
+      targetType: 'connection',
+      targetId: id,
+    });
   }
 
   async traffic(fromInput?: Date, toInput?: Date): Promise<AdminTrafficDto> {
@@ -278,8 +399,17 @@ export class AdminInfraService {
     const from = startOfUtcDay(fromInput ?? addDays(to, -29));
     const where = { day: { gte: from, lte: to } };
     const [daily, byServer, topUsers, servers] = await Promise.all([
-      this.db.trafficUsage.groupBy({ by: ['day'], where, _sum: { rxBytes: true, txBytes: true }, orderBy: { day: 'asc' } }),
-      this.db.trafficUsage.groupBy({ by: ['serverId'], where, _sum: { rxBytes: true, txBytes: true } }),
+      this.db.trafficUsage.groupBy({
+        by: ['day'],
+        where,
+        _sum: { rxBytes: true, txBytes: true },
+        orderBy: { day: 'asc' },
+      }),
+      this.db.trafficUsage.groupBy({
+        by: ['serverId'],
+        where,
+        _sum: { rxBytes: true, txBytes: true },
+      }),
       this.db.trafficUsage.groupBy({
         by: ['userId'],
         where,
@@ -290,7 +420,10 @@ export class AdminInfraService {
       this.db.vPNServer.findMany({ select: { id: true, name: true } }),
     ]);
     const serverNames = new Map(servers.map((server) => [server.id, server.name]));
-    const users = await this.db.user.findMany({ where: { id: { in: topUsers.map((row) => row.userId) } }, select: { id: true, email: true } });
+    const users = await this.db.user.findMany({
+      where: { id: { in: topUsers.map((row) => row.userId) } },
+      select: { id: true, email: true },
+    });
     const emails = new Map(users.map((user) => [user.id, user.email]));
     const dailyMap = new Map(daily.map((row) => [isoDay(row.day), row._sum]));
     const days = Math.round((to.getTime() - from.getTime()) / 86_400_000) + 1;

@@ -17,7 +17,9 @@ export class CapturingMailQueue implements MailQueue {
   }
 
   last(template: EmailJob['template'], to?: string): EmailJob | undefined {
-    return [...this.sent].reverse().find((job) => job.template === template && (!to || job.to === to));
+    return [...this.sent]
+      .reverse()
+      .find((job) => job.template === template && (!to || job.to === to));
   }
 
   /** Extracts the `token` query parameter from the link of the latest email. */
@@ -90,11 +92,19 @@ export class FakeStripeGateway implements StripeGateway {
 
   async cancelSubscriptionNow(subscriptionId: string): Promise<void> {
     const subscription = await this.retrieveSubscription(subscriptionId);
-    this.subscriptions.set(subscriptionId, { ...subscription, status: 'canceled', endedAt: new Date() });
+    this.subscriptions.set(subscriptionId, {
+      ...subscription,
+      status: 'canceled',
+      endedAt: new Date(),
+    });
   }
 
   constructEvent(payload: Buffer, signature: string): GatewayEvent {
-    return this.stripe.webhooks.constructEvent(payload, signature, TEST_WEBHOOK_SECRET) as unknown as GatewayEvent;
+    return this.stripe.webhooks.constructEvent(
+      payload,
+      signature,
+      TEST_WEBHOOK_SECRET,
+    ) as unknown as GatewayEvent;
   }
 
   sign(payload: string): string {

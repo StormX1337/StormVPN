@@ -17,7 +17,10 @@ const templates: EmailTemplate[] = [
 
 describe('email templates', () => {
   it.each(templates)('renders %s', (template) => {
-    const email = renderEmail({ template, to: 'a@b.c', data: { link: 'https://app.test/x?token=abc', name: 'Ann' } }, 'https://app.test');
+    const email = renderEmail(
+      { template, to: 'a@b.c', data: { link: 'https://app.test/x?token=abc', name: 'Ann' } },
+      'https://app.test',
+    );
     expect(email.subject.length).toBeGreaterThan(5);
     expect(email.html).toContain('STORMVPN');
     expect(email.text).toContain('StormVPN');
@@ -25,7 +28,11 @@ describe('email templates', () => {
 
   it('escapes user controlled values and refuses non-http links', () => {
     const email = renderEmail(
-      { template: 'verify-email', to: 'a@b.c', data: { name: '<img src=x onerror=alert(1)>', link: 'javascript:alert(1)' } },
+      {
+        template: 'verify-email',
+        to: 'a@b.c',
+        data: { name: '<img src=x onerror=alert(1)>', link: 'javascript:alert(1)' },
+      },
       'https://app.test',
     );
     expect(email.html).not.toContain('<img src=x');

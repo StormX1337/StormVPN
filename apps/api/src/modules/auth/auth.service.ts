@@ -15,7 +15,13 @@ import {
   type SettingsService,
   writeAuditLog,
 } from '@stormvpn/core';
-import { type ClientType, type Database, isUniqueViolation, type TokenPurpose, type User } from '@stormvpn/database';
+import {
+  type ClientType,
+  type Database,
+  isUniqueViolation,
+  type TokenPurpose,
+  type User,
+} from '@stormvpn/database';
 import type { LoginInput, RegisterInput } from '@stormvpn/validation';
 import type { ApiEnv } from '../../env';
 import type { Clock } from '../../lib/clock';
@@ -36,7 +42,8 @@ export interface RequestMeta {
   clientType: ClientType;
 }
 
-export type LoginOutcome = { kind: 'session'; issued: IssuedSession } | { kind: 'mfa'; mfaToken: string };
+export type LoginOutcome =
+  { kind: 'session'; issued: IssuedSession } | { kind: 'mfa'; mfaToken: string };
 
 interface MfaChallenge {
   userId: string;
@@ -65,18 +72,32 @@ export class AuthService {
     }
     await this.assertIpNotFlagged(meta.ipAddress);
     const day = this.clock.now().toISOString().slice(0, 10);
-    const quota = await this.counter.hit(`reg:ip:${meta.ipAddress}:${day}`, this.env.REGISTRATIONS_PER_IP_PER_DAY, 86_400);
+    const quota = await this.counter.hit(
+      `reg:ip:${meta.ipAddress}:${day}`,
+      this.env.REGISTRATIONS_PER_IP_PER_DAY,
+      86_400,
+    );
     if (quota.exceeded) {
-      await recordSecurityEvent(this.db, { type: 'RATE_LIMITED', ipAddress: meta.ipAddress, metadata: { scope: 'registration' } });
-      throw tooManyRequests('registration_limit', 'Too many accounts created from this network today');
+      await recordSecurityEvent(this.db, {
+        type: 'RATE_LIMITED',
+        ipAddress: meta.ipAddress,
+        metadata: { scope: 'registration' },
+      });
+      throw tooManyRequests(
+        'registration_limit',
+        'Too many accounts created from this network today',
+      );
     }
 
     const passwordHash = await hashPassword(input.password);
     let user: User;
     try {
-      user = await this.db.user.create({ data: { email: input.email, passwordHash, name: input.name ?? null } });
+      user = await this.db.user.create({
+        data: { email: input.email, passwordHash, name: input.name ?? null },
+      });
     } catch (error) {
-      if (isUniqueViolation(error, 'email')) throw conflict('email_taken', 'An account with this email already exists');
+      if (isUniqueViolation(error, 'email'))
+        throw conflict('email_taken', 'An account with this email already exists');
       throw error;
     }
 
@@ -98,9 +119,10 @@ export class AuthService {
     await this.bruteForce.assertAllowed(input.email, meta.ipAddress);
     const user = await this.db.user.findUnique({ where: { email: input.email } });
 
-    const valid = user && !user.deletedAt
-      ? await verifyPassword(user.passwordHash, input.password)
-      : (await verifyPassword(await getDummyPasswordHash(), input.password), false);
+    const valid =
+      user && !user.deletedAt
+        ? await verifyPassword(user.passwordHash, input.password)
+        : (await verifyPassword(await getDummyPasswordHash(), input.password), false);
 
     if (!user || !valid) {
       const locked = await this.bruteForce.recordFailure(input.email, meta.ipAddress);
@@ -118,19 +140,31 @@ export class AuthService {
     await this.bruteForce.reset(input.email);
 
     if (passwordNeedsRehash(user.passwordHash)) {
-      await this.db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(input.password) } });
+      await this.db.user.update({
+        where: { id: user.id },
+        data: { passwordHash: await hashPassword(input.password) },
+      });
     }
 
     if (user.totpEnabledAt) {
       const mfaToken = generateToken(32);
       const challenge: MfaChallenge = { userId: user.id, clientType: meta.clientType, attempts: 0 };
-      await this.redis.set(`mfa:challenge:${sha256Hex(mfaToken)}`, JSON.stringify(challenge), 'EX', MFA_CHALLENGE_TTL_SECONDS);
+      await this.redis.set(
+        `mfa:challenge:${sha256Hex(mfaToken)}`,
+        JSON.stringify(challenge),
+        'EX',
+        MFA_CHALLENGE_TTL_SECONDS,
+      );
       return { kind: 'mfa', mfaToken };
     }
     return { kind: 'session', issued: await this.completeLogin(user, meta, false) };
   }
 
-  async completeMfaLogin(mfaToken: string, code: string, meta: RequestMeta): Promise<IssuedSession> {
+  async completeMfaLogin(
+    mfaToken: string,
+    code: string,
+    meta: RequestMeta,
+  ): Promise<IssuedSession> {
     const key = `mfa:challenge:${sha256Hex(mfaToken)}`;
     const raw = await this.redis.get(key);
     if (!raw) throw unauthorized('mfa_expired', 'Sign-in expired, please start again');
@@ -160,7 +194,11 @@ export class AuthService {
     return this.completeLogin(user, { ...meta, clientType: challenge.clientType }, true);
   }
 
-  private async completeLogin(user: User, meta: RequestMeta, mfaVerified: boolean): Promise<IssuedSession> {
+  private async completeLogin(
+    user: User,
+    meta: RequestMeta,
+    mfaVerified: boolean,
+  ): Promise<IssuedSession> {
     const newLocation = user.lastLoginIp !== null && user.lastLoginIp !== meta.ipAddress;
     await this.db.user.update({
       where: { id: user.id },
@@ -177,7 +215,11 @@ export class AuthService {
       await this.mail.send({
         template: 'new-login',
         to: user.email,
-        data: { ipAddress: meta.ipAddress, userAgent: meta.userAgent ?? 'unknown', time: this.clock.now().toISOString() },
+        data: {
+          ipAddress: meta.ipAddress,
+          userAgent: meta.userAgent ?? 'unknown',
+          time: this.clock.now().toISOString(),
+        },
       });
     }
     return this.sessions.create(user, { ...meta, mfaVerified });
@@ -188,15 +230,20 @@ export class AuthService {
     await this.mail.send({
       template: 'verify-email',
       to: user.email,
-      data: { name: user.name ?? '', link: `${this.env.APP_URL}/verify-email?token=${encodeURIComponent(token)}` },
+      data: {
+        name: user.name ?? '',
+        link: `${this.env.APP_URL}/verify-email?token=${encodeURIComponent(token)}`,
+      },
     });
   }
 
   async resendVerification(userId: string): Promise<void> {
     const user = await this.db.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.emailVerifiedAt) throw conflict('already_verified', 'Email address is already verified');
+    if (user.emailVerifiedAt)
+      throw conflict('already_verified', 'Email address is already verified');
     const quota = await this.counter.hit(`verify:resend:${userId}`, 3, 3600);
-    if (quota.exceeded) throw tooManyRequests('resend_limit', 'Please wait before requesting another email');
+    if (quota.exceeded)
+      throw tooManyRequests('resend_limit', 'Please wait before requesting another email');
     await this.sendVerificationEmail(user);
   }
 
@@ -251,7 +298,11 @@ export class AuthService {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
     });
-    await this.mail.send({ template: 'password-changed', to: user.email, data: { time: this.clock.now().toISOString() } });
+    await this.mail.send({
+      template: 'password-changed',
+      to: user.email,
+      data: { time: this.clock.now().toISOString() },
+    });
   }
 
   private async createToken(userId: string, purpose: TokenPurpose, ttlMs: number): Promise<string> {
@@ -269,7 +320,9 @@ export class AuthService {
 
   private async consumeToken(token: string, purpose: TokenPurpose) {
     const now = this.clock.now();
-    const record = await this.db.verificationToken.findUnique({ where: { tokenHash: sha256Hex(token) } });
+    const record = await this.db.verificationToken.findUnique({
+      where: { tokenHash: sha256Hex(token) },
+    });
     if (!record || record.purpose !== purpose || record.usedAt || record.expiresAt <= now) {
       throw badRequest('invalid_token', 'This link is invalid or has expired');
     }
@@ -277,7 +330,8 @@ export class AuthService {
       where: { id: record.id, usedAt: null },
       data: { usedAt: now },
     });
-    if (claimed.count === 0) throw badRequest('invalid_token', 'This link is invalid or has expired');
+    if (claimed.count === 0)
+      throw badRequest('invalid_token', 'This link is invalid or has expired');
     return record;
   }
 
@@ -291,6 +345,7 @@ export class AuthService {
         OR: [{ expiresAt: null }, { expiresAt: { gt: this.clock.now() } }],
       },
     });
-    if (flag) throw forbidden('registration_blocked', 'Registration is not possible from this network');
+    if (flag)
+      throw forbidden('registration_blocked', 'Registration is not possible from this network');
   }
 }

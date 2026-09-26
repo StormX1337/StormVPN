@@ -6,12 +6,22 @@ import { useEffect, useState } from 'react';
 import type * as React from 'react';
 import { Toaster as SonnerToaster } from 'sonner';
 import { Button } from './button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './dropdown-menu';
 import { TooltipProvider } from './tooltip';
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   return (
-    <NextThemesProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="dark"
+      enableSystem
+      disableTransitionOnChange
+    >
       <TooltipProvider>{children}</TooltipProvider>
     </NextThemesProvider>
   );
@@ -46,7 +56,14 @@ export function ThemeToggle() {
 
 export function Toaster() {
   const { resolvedTheme } = useTheme();
-  return <SonnerToaster theme={resolvedTheme === 'light' ? 'light' : 'dark'} richColors closeButton position="top-right" />;
+  return (
+    <SonnerToaster
+      theme={resolvedTheme === 'light' ? 'light' : 'dark'}
+      richColors
+      closeButton
+      position="top-right"
+    />
+  );
 }
 
 export { toast } from 'sonner';

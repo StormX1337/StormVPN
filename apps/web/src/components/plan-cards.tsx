@@ -21,9 +21,9 @@ export function PlanCards({
           <div
             key={plan.id}
             className={cn(
-              'relative flex flex-col gap-5 rounded-2xl border bg-card p-6 shadow-sm',
-              plan.id === featured && 'border-primary/50 shadow-lg shadow-primary/10',
-              current && 'ring-2 ring-primary/60',
+              'bg-card relative flex flex-col gap-5 rounded-2xl border p-6 shadow-sm',
+              plan.id === featured && 'border-primary/50 shadow-primary/10 shadow-lg',
+              current && 'ring-primary/60 ring-2',
             )}
           >
             {plan.id === featured ? (
@@ -33,28 +33,41 @@ export function PlanCards({
             ) : null}
             <div className="space-y-1">
               <h3 className="font-semibold">{plan.name}</h3>
-              <p className="min-h-10 text-sm text-muted-foreground">{plan.description}</p>
+              <p className="text-muted-foreground min-h-10 text-sm">{plan.description}</p>
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-semibold tracking-tight">{plan.isFree ? 'Free' : formatCurrency(plan.priceCents, plan.currency)}</span>
-              {plan.isFree ? null : <span className="text-sm text-muted-foreground">/ {intervalLabel(plan.billingInterval, plan.intervalCount)}</span>}
+              <span className="text-3xl font-semibold tracking-tight">
+                {plan.isFree ? 'Free' : formatCurrency(plan.priceCents, plan.currency)}
+              </span>
+              {plan.isFree ? null : (
+                <span className="text-muted-foreground text-sm">
+                  / {intervalLabel(plan.billingInterval, plan.intervalCount)}
+                </span>
+              )}
             </div>
-            {plan.trialDays > 0 ? <p className="-mt-3 text-xs text-status-good">{plan.trialDays}-day free trial</p> : null}
+            {plan.trialDays > 0 ? (
+              <p className="text-status-good -mt-3 text-xs">{plan.trialDays}-day free trial</p>
+            ) : null}
             <ul className="flex-1 space-y-2 text-sm">
               <li className="flex gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-status-good" /> {plan.maxDevices} device{plan.maxDevices > 1 ? 's' : ''} · {plan.maxSessions} simultaneous
+                <Check className="text-status-good mt-0.5 size-4 shrink-0" /> {plan.maxDevices}{' '}
+                device{plan.maxDevices > 1 ? 's' : ''} · {plan.maxSessions} simultaneous
               </li>
               <li className="flex gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-status-good" />
-                {plan.trafficLimitBytes === null ? 'Unlimited traffic' : `${formatBytes(plan.trafficLimitBytes, 0)} per month`}
+                <Check className="text-status-good mt-0.5 size-4 shrink-0" />
+                {plan.trafficLimitBytes === null
+                  ? 'Unlimited traffic'
+                  : `${formatBytes(plan.trafficLimitBytes, 0)} per month`}
               </li>
               <li className="flex gap-2">
-                <Check className="mt-0.5 size-4 shrink-0 text-status-good" />
-                {plan.allowedCountries.length === 0 ? 'All locations' : `${plan.allowedCountries.length} locations`}
+                <Check className="text-status-good mt-0.5 size-4 shrink-0" />
+                {plan.allowedCountries.length === 0
+                  ? 'All locations'
+                  : `${plan.allowedCountries.length} locations`}
               </li>
               {plan.features.map((feature) => (
-                <li key={feature} className="flex gap-2 text-muted-foreground">
-                  <Check className="mt-0.5 size-4 shrink-0 text-muted-foreground" /> {feature}
+                <li key={feature} className="text-muted-foreground flex gap-2">
+                  <Check className="text-muted-foreground mt-0.5 size-4 shrink-0" /> {feature}
                 </li>
               ))}
             </ul>

@@ -12,7 +12,8 @@ export interface LoadInput {
  * CPU and bandwidth. A node is as loaded as its bottleneck.
  */
 export function computeServerLoad(input: LoadInput): number {
-  const connectionLoad = input.capacity > 0 ? (input.activeConnections / input.capacity) * 100 : 100;
+  const connectionLoad =
+    input.capacity > 0 ? (input.activeConnections / input.capacity) * 100 : 100;
   const bandwidthBps = Math.max(input.rxBps, input.txBps) * 8;
   const bandwidthCapacity = input.bandwidthCapacityMbps * 1_000_000;
   const bandwidthLoad = bandwidthCapacity > 0 ? (bandwidthBps / bandwidthCapacity) * 100 : 0;

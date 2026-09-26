@@ -4,7 +4,9 @@
   "private": true,
   "description": "StormVPN design system (Tailwind v4 + Radix, shadcn/ui conventions)",
   "type": "module",
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles/globals.css",

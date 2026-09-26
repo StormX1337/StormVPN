@@ -37,7 +37,9 @@ export class PeerService {
     private readonly encryptor: DataEncryptor,
   ) {}
 
-  decryptPresharedKey(peer: Pick<VPNPeer, 'serverId' | 'publicKey' | 'presharedKeyEnc'>): string | null {
+  decryptPresharedKey(
+    peer: Pick<VPNPeer, 'serverId' | 'publicKey' | 'presharedKeyEnc'>,
+  ): string | null {
     if (!peer.presharedKeyEnc) return null;
     return this.encryptor.decrypt(peer.presharedKeyEnc, pskAad(peer.serverId, peer.publicKey));
   }
@@ -54,14 +56,22 @@ export class PeerService {
         throw forbidden('peer_disabled', 'This configuration was disabled by an administrator');
       }
       if (existing.publicKey === publicKey && existing.status === 'ACTIVE') {
-        return { peer: existing, presharedKey: this.decryptPresharedKey(existing)!, created: false };
+        return {
+          peer: existing,
+          presharedKey: this.decryptPresharedKey(existing)!,
+          created: false,
+        };
       }
       return this.rekey(existing, publicKey, generated?.privateKey);
     }
     return this.create(input, publicKey, generated?.privateKey);
   }
 
-  private async rekey(existing: VPNPeer, publicKey: string, privateKey?: string): Promise<ProvisionedPeer> {
+  private async rekey(
+    existing: VPNPeer,
+    publicKey: string,
+    privateKey?: string,
+  ): Promise<ProvisionedPeer> {
     const presharedKey = generatePresharedKey();
     try {
       const peer = await this.db.$transaction(async (tx) => {
@@ -69,7 +79,10 @@ export class PeerService {
           where: { id: existing.id },
           data: {
             publicKey,
-            presharedKeyEnc: this.encryptor.encrypt(presharedKey, pskAad(existing.serverId, publicKey)),
+            presharedKeyEnc: this.encryptor.encrypt(
+              presharedKey,
+              pskAad(existing.serverId, publicKey),
+            ),
             status: 'ACTIVE',
             disabledReason: null,
             lastHandshakeAt: null,
@@ -80,21 +93,38 @@ export class PeerService {
       });
       return { peer, presharedKey, privateKey, created: false };
     } catch (error) {
-      if (isUniqueViolation(error, 'publicKey')) throw conflict('public_key_in_use', 'This public key is already registered');
+      if (isUniqueViolation(error, 'publicKey'))
+        throw conflict('public_key_in_use', 'This public key is already registered');
       throw error;
     }
   }
 
-  private async create(input: ProvisionPeerInput, publicKey: string, privateKey?: string): Promise<ProvisionedPeer> {
+  private async create(
+    input: ProvisionPeerInput,
+    publicKey: string,
+    privateKey?: string,
+  ): Promise<ProvisionedPeer> {
     const { server } = input;
     const presharedKey = generatePresharedKey();
     const presharedKeyEnc = this.encryptor.encrypt(presharedKey, pskAad(server.id, publicKey));
 
     for (let attempt = 0; attempt < MAX_ALLOCATION_ATTEMPTS; attempt++) {
-      const used = await this.db.vPNPeer.findMany({ where: { serverId: server.id }, select: { ipv4Address: true } });
-      const ipv4Address = allocateIpv4(server.wgSubnetV4, used.map((row) => row.ipv4Address));
-      if (!ipv4Address) throw serviceUnavailable('server_address_pool_exhausted', `${server.name} has no free addresses`);
-      const ipv6Address = server.wgSubnetV6 ? ipv6ForHost(server.wgSubnetV6, hostIndex(ipv4Address, server.wgSubnetV4)) : null;
+      const used = await this.db.vPNPeer.findMany({
+        where: { serverId: server.id },
+        select: { ipv4Address: true },
+      });
+      const ipv4Address = allocateIpv4(
+        server.wgSubnetV4,
+        used.map((row) => row.ipv4Address),
+      );
+      if (!ipv4Address)
+        throw serviceUnavailable(
+          'server_address_pool_exhausted',
+          `${server.name} has no free addresses`,
+        );
+      const ipv6Address = server.wgSubnetV6
+        ? ipv6ForHost(server.wgSubnetV6, hostIndex(ipv4Address, server.wgSubnetV4))
+        : null;
       try {
         const peer = await this.db.$transaction(async (tx) => {
           const created = await tx.vPNPeer.create({
@@ -113,7 +143,8 @@ export class PeerService {
         });
         return { peer, presharedKey, privateKey, created: true };
       } catch (error) {
-        if (isUniqueViolation(error, 'publicKey')) throw conflict('public_key_in_use', 'This public key is already registered');
+        if (isUniqueViolation(error, 'publicKey'))
+          throw conflict('public_key_in_use', 'This public key is already registered');
         if (isUniqueViolation(error, 'deviceId')) {
           // A concurrent request created the peer for this device – use it.
           return this.provision(input);
@@ -122,11 +153,16 @@ export class PeerService {
         throw error;
       }
     }
-    throw serviceUnavailable('address_allocation_failed', 'Could not allocate an address, please retry');
+    throw serviceUnavailable(
+      'address_allocation_failed',
+      'Could not allocate an address, please retry',
+    );
   }
 
   async revoke(peerId: string, userId?: string): Promise<void> {
-    const peer = await this.db.vPNPeer.findFirst({ where: { id: peerId, ...(userId ? { userId } : {}) } });
+    const peer = await this.db.vPNPeer.findFirst({
+      where: { id: peerId, ...(userId ? { userId } : {}) },
+    });
     if (!peer) throw notFound('Peer');
     await this.db.$transaction(async (tx) => {
       await tx.vPNConnection.updateMany({
@@ -144,7 +180,9 @@ export class PeerService {
     return this.db.$transaction(async (tx) => {
       const updated = await tx.vPNPeer.update({
         where: { id: peerId },
-        data: disabled ? { status: 'DISABLED', disabledReason: ADMIN_DISABLE_REASON } : { status: 'ACTIVE', disabledReason: null },
+        data: disabled
+          ? { status: 'DISABLED', disabledReason: ADMIN_DISABLE_REASON }
+          : { status: 'ACTIVE', disabledReason: null },
       });
       await bumpPeerRevision(tx, [peer.serverId]);
       return updated;

@@ -20,7 +20,10 @@ export async function runNodeHealth(ctx: JobContext): Promise<JobResult> {
       data: { status: 'OFFLINE', activeConnections: 0, rxBps: 0n, txBps: 0n },
     });
     for (const node of stale) {
-      ctx.logger.warn({ nodeId: node.id, server: node.server.name }, 'node marked offline (missed heartbeats)');
+      ctx.logger.warn(
+        { nodeId: node.id, server: node.server.name },
+        'node marked offline (missed heartbeats)',
+      );
       await ctx.events?.toAdmins({
         type: 'admin.node',
         data: {

@@ -1,0 +1,36 @@
+[Unit]
+Description=StormVPN node agent (WireGuard control)
+Documentation=https://github.com/stormx1337/stormvpn/blob/main/docs/NODE-SETUP.md
+After=network-online.target nftables.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/stormvpn-agent/agent.env
+ExecStart=/usr/bin/node /usr/local/lib/stormvpn-agent/stormvpn-agent.mjs run
+Restart=always
+RestartSec=5
+# The agent manages WireGuard/network state and therefore runs as root, but
+# with a minimal capability set and a read-only view of the system.
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_DAC_OVERRIDE CAP_SYS_MODULE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=false
+ProtectControlGroups=true
+ProtectClock=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/stormvpn-agent /etc/wireguard /run /etc/resolv.conf
+StateDirectory=stormvpn-agent
+StateDirectoryMode=0700
+UMask=0077
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

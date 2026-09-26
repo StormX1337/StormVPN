@@ -20,7 +20,10 @@ export function isLiveStatus(status: SubscriptionStatus): boolean {
   return LIVE_SUBSCRIPTION_STATUSES.includes(status);
 }
 
-export async function getLiveSubscription(db: DbClient, userId: string): Promise<SubscriptionWithPlan | null> {
+export async function getLiveSubscription(
+  db: DbClient,
+  userId: string,
+): Promise<SubscriptionWithPlan | null> {
   return db.subscription.findFirst({
     where: { userId, status: { in: LIVE_SUBSCRIPTION_STATUSES } },
     include: { plan: true },
@@ -53,7 +56,8 @@ export function isServerAllowed(
   server: { countryCode: string; serverClass: string },
 ): boolean {
   const countryOk =
-    entitlements.allowedCountries.length === 0 || entitlements.allowedCountries.includes(server.countryCode);
+    entitlements.allowedCountries.length === 0 ||
+    entitlements.allowedCountries.includes(server.countryCode);
   return countryOk && entitlements.serverClasses.includes(server.serverClass);
 }
 
@@ -65,7 +69,10 @@ export async function findFreePlan(db: DbClient): Promise<Plan | null> {
 }
 
 /** Gives the user the free plan when they have no live subscription (and a free plan exists). */
-export async function ensureFreeSubscription(db: DbClient, userId: string): Promise<SubscriptionWithPlan | null> {
+export async function ensureFreeSubscription(
+  db: DbClient,
+  userId: string,
+): Promise<SubscriptionWithPlan | null> {
   const live = await getLiveSubscription(db, userId);
   if (live) return live;
   const plan = await findFreePlan(db);
@@ -84,7 +91,11 @@ export async function ensureFreeSubscription(db: DbClient, userId: string): Prom
 }
 
 /** Traffic (rx + tx) used in the current calendar month. */
-export async function getMonthlyTrafficBytes(db: DbClient, userId: string, now = new Date()): Promise<bigint> {
+export async function getMonthlyTrafficBytes(
+  db: DbClient,
+  userId: string,
+  now = new Date(),
+): Promise<bigint> {
   const result = await db.trafficUsage.aggregate({
     where: { userId, day: { gte: startOfUtcMonth(now) } },
     _sum: { rxBytes: true, txBytes: true },

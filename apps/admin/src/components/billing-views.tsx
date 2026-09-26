@@ -35,15 +35,35 @@ export function SubscriptionsView() {
     placeholderData: (previous) => previous,
   });
   const invalidate = [['admin', 'subscriptions']];
-  const cancel = useAction((id: string) => api.admin.cancelSubscription(id), { success: 'Cancellation scheduled', invalidate });
-  const sync = useAction((id: string) => api.admin.syncSubscription(id), { success: 'Synchronised with Stripe', invalidate });
+  const cancel = useAction((id: string) => api.admin.cancelSubscription(id), {
+    success: 'Cancellation scheduled',
+    invalidate,
+  });
+  const sync = useAction((id: string) => api.admin.syncSubscription(id), {
+    success: 'Synchronised with Stripe',
+    invalidate,
+  });
 
   return (
     <>
-      <PageHeader title="Subscriptions" description={data ? `${data.total} subscriptions` : undefined} />
+      <PageHeader
+        title="Subscriptions"
+        description={data ? `${data.total} subscriptions` : undefined}
+      />
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Input className="sm:w-72" placeholder="Search customer email" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search" />
-        <NativeSelect className="sm:w-48" value={status} onChange={(event) => setStatus(event.target.value)} aria-label="Status">
+        <Input
+          className="sm:w-72"
+          placeholder="Search customer email"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          aria-label="Search"
+        />
+        <NativeSelect
+          className="sm:w-48"
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+          aria-label="Status"
+        >
           <option value="">All statuses</option>
           {Object.values(SubscriptionStatus).map((value) => (
             <option key={value} value={value}>
@@ -72,10 +92,18 @@ export function SubscriptionsView() {
                 <TableCell>{row.planName}</TableCell>
                 <TableCell>
                   <StatusBadge status={row.status} />
-                  {row.cancelAtPeriodEnd ? <span className="ml-2 text-xs text-muted-foreground">cancels at period end</span> : null}
+                  {row.cancelAtPeriodEnd ? (
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      cancels at period end
+                    </span>
+                  ) : null}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{row.provider.toLowerCase()}</TableCell>
-                <TableCell className="text-muted-foreground">{formatDate(row.currentPeriodEnd)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {row.provider.toLowerCase()}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDate(row.currentPeriodEnd)}
+                </TableCell>
                 <TableCell className="text-muted-foreground">{formatDate(row.createdAt)}</TableCell>
                 <TableCell className="space-x-1 text-right">
                   {row.stripeSubscriptionId ? (
@@ -83,7 +111,8 @@ export function SubscriptionsView() {
                       Sync
                     </Button>
                   ) : null}
-                  {['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(row.status) && !row.cancelAtPeriodEnd ? (
+                  {['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(row.status) &&
+                  !row.cancelAtPeriodEnd ? (
                     <Button size="sm" variant="outline" onClick={() => cancel.mutate(row.id)}>
                       Cancel
                     </Button>
@@ -95,7 +124,12 @@ export function SubscriptionsView() {
         </Table>
         {data ? (
           <div className="px-4">
-            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
+            <Pagination
+              page={data.page}
+              pageSize={data.pageSize}
+              total={data.total}
+              onPageChange={setPage}
+            />
           </div>
         ) : null}
       </Card>
@@ -115,7 +149,13 @@ export function PaymentsView() {
   return (
     <>
       <PageHeader title="Payments" description="Stripe payments recorded from webhooks." />
-      <Input className="sm:w-72" placeholder="Search customer email" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search" />
+      <Input
+        className="sm:w-72"
+        placeholder="Search customer email"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        aria-label="Search"
+      />
       <Card className="p-0">
         <Table>
           <TableHeader>
@@ -131,17 +171,23 @@ export function PaymentsView() {
             {data?.items.map((row) => (
               <TableRow key={row.id}>
                 <TableCell>{row.userEmail}</TableCell>
-                <TableCell className="tabular">{formatCurrency(row.amountCents, row.currency)}</TableCell>
+                <TableCell className="tabular">
+                  {formatCurrency(row.amountCents, row.currency)}
+                </TableCell>
                 <TableCell>
                   <StatusBadge status={row.status} />
                 </TableCell>
-                <TableCell className="max-w-64 truncate text-muted-foreground">{row.failureReason ?? '—'}</TableCell>
-                <TableCell className="text-muted-foreground">{formatDateTime(row.paidAt ?? row.createdAt)}</TableCell>
+                <TableCell className="text-muted-foreground max-w-64 truncate">
+                  {row.failureReason ?? '—'}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDateTime(row.paidAt ?? row.createdAt)}
+                </TableCell>
               </TableRow>
             ))}
             {data?.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-muted-foreground py-8 text-center">
                   No payments yet
                 </TableCell>
               </TableRow>
@@ -150,7 +196,12 @@ export function PaymentsView() {
         </Table>
         {data ? (
           <div className="px-4">
-            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
+            <Pagination
+              page={data.page}
+              pageSize={data.pageSize}
+              total={data.total}
+              onPageChange={setPage}
+            />
           </div>
         ) : null}
       </Card>

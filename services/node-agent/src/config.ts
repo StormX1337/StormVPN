@@ -4,7 +4,9 @@ import { envBoolean, envList, loadEnv } from '@stormvpn/config';
 export const agentEnvSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('production'),
-    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
     STORMVPN_API_URL: z.string().url(),
     STORMVPN_ENROLLMENT_TOKEN: z.string().min(20).optional(),
     STORMVPN_STATE_DIR: z.string().default('/var/lib/stormvpn-agent'),
@@ -34,12 +36,15 @@ export const agentEnvSchema = z
       ctx.addIssue({
         code: 'custom',
         path: ['STORMVPN_API_URL'],
-        message: 'must use https:// (set AGENT_ALLOW_INSECURE_HTTP=true for local development only)',
+        message:
+          'must use https:// (set AGENT_ALLOW_INSECURE_HTTP=true for local development only)',
       });
     }
   });
 export type AgentConfig = z.infer<typeof agentEnvSchema>;
 
-export function loadAgentConfig(source: Record<string, string | undefined> = process.env): AgentConfig {
+export function loadAgentConfig(
+  source: Record<string, string | undefined> = process.env,
+): AgentConfig {
   return loadEnv(agentEnvSchema, source);
 }

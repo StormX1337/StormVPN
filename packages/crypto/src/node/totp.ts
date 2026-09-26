@@ -88,7 +88,11 @@ export function verifyTotp(secret: string, code: string, options: TotpOptions = 
   return null;
 }
 
-export function buildOtpAuthUrl(params: { secret: string; accountName: string; issuer: string }): string {
+export function buildOtpAuthUrl(params: {
+  secret: string;
+  accountName: string;
+  issuer: string;
+}): string {
   const label = encodeURIComponent(`${params.issuer}:${params.accountName}`);
   const query = new URLSearchParams({
     secret: params.secret,

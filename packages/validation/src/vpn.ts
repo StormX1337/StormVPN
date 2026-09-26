@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { DevicePlatform, Region, ServerClass } from '@stormvpn/types';
-import { booleanQuerySchema, cidrSchema, countryCodeSchema, idSchema, wireguardKeySchema } from './common';
+import {
+  booleanQuerySchema,
+  cidrSchema,
+  countryCodeSchema,
+  idSchema,
+  wireguardKeySchema,
+} from './common';
 
 export const deviceNameSchema = z
   .string()

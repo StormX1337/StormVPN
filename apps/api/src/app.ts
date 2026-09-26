@@ -42,7 +42,10 @@ export interface BuildAppOptions {
   realtime?: boolean;
 }
 
-export async function buildApp(deps: AppDeps, options: BuildAppOptions = {}): Promise<FastifyInstance> {
+export async function buildApp(
+  deps: AppDeps,
+  options: BuildAppOptions = {},
+): Promise<FastifyInstance> {
   const app = Fastify({
     loggerInstance: deps.logger as FastifyBaseLogger,
     trustProxy: parseTrustProxy(deps.env.TRUST_PROXY),

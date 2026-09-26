@@ -1,7 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import type { ZodTypeProvider } from 'fastify-type-provider-zod';
 import { z } from 'zod';
-import { createDeviceSchema, idParamsSchema, idSchema, updateDeviceSchema } from '@stormvpn/validation';
+import {
+  createDeviceSchema,
+  idParamsSchema,
+  idSchema,
+  updateDeviceSchema,
+} from '@stormvpn/validation';
 import { authOf } from '../../lib/auth-context';
 import { clientIp } from '../../lib/request';
 
@@ -18,10 +23,14 @@ export async function deviceRoutes(fastify: FastifyInstance): Promise<void> {
     return reply.status(201).send(device);
   });
 
-  app.patch('/:id', { schema: { params: idParamsSchema, body: updateDeviceSchema } }, async (request, reply) => {
-    await devices.rename(authOf(request).userId, request.params.id, request.body.name);
-    return reply.status(204).send();
-  });
+  app.patch(
+    '/:id',
+    { schema: { params: idParamsSchema, body: updateDeviceSchema } },
+    async (request, reply) => {
+      await devices.rename(authOf(request).userId, request.params.id, request.body.name);
+      return reply.status(204).send();
+    },
+  );
 
   app.delete('/:id', { schema: { params: idParamsSchema } }, async (request, reply) => {
     await devices.remove(authOf(request).userId, request.params.id);

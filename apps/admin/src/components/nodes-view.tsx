@@ -31,14 +31,27 @@ import { useState } from 'react';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/use-action';
 
-const CHECK_LABELS: Record<string, string> = { wireguard: 'WireGuard', ipForward: 'IP forwarding', nat: 'NAT masquerade', dryRun: 'Dry run' };
+const CHECK_LABELS: Record<string, string> = {
+  wireguard: 'WireGuard',
+  ipForward: 'IP forwarding',
+  nat: 'NAT masquerade',
+  dryRun: 'Dry run',
+};
 
 function NodeDetail({ node, onClose }: { node: AdminNodeDto | null; onClose: () => void }) {
-  const { data } = useQuery({ queryKey: ['admin', 'node', node?.id], queryFn: () => api.admin.node(node!.id), enabled: !!node, refetchInterval: 30_000 });
+  const { data } = useQuery({
+    queryKey: ['admin', 'node', node?.id],
+    queryFn: () => api.admin.node(node!.id),
+    enabled: !!node,
+    refetchInterval: 30_000,
+  });
   const [confirm, setConfirm] = useState(false);
   const remove = useAction(() => api.admin.deleteNode(node!.id), {
     success: 'Node deregistered',
-    invalidate: [['admin', 'nodes'], ['admin', 'servers']],
+    invalidate: [
+      ['admin', 'nodes'],
+      ['admin', 'servers'],
+    ],
     onDone: () => {
       setConfirm(false);
       onClose();
@@ -57,7 +70,8 @@ function NodeDetail({ node, onClose }: { node: AdminNodeDto | null; onClose: () 
             <DialogHeader>
               <DialogTitle>{node.serverName}</DialogTitle>
               <DialogDescription>
-                {node.hostname} · agent {node.agentVersion ?? '?'} · {node.publicIpv4 ?? 'no IP reported'}
+                {node.hostname} · agent {node.agentVersion ?? '?'} ·{' '}
+                {node.publicIpv4 ?? 'no IP reported'}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-3 text-sm sm:grid-cols-4">
@@ -82,7 +96,11 @@ function NodeDetail({ node, onClose }: { node: AdminNodeDto | null; onClose: () 
             </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(node.healthChecks ?? {}).map(([name, check]) => (
-                <StatusBadge key={name} tone={check.ok ? 'good' : 'critical'} label={`${CHECK_LABELS[name] ?? humanize(name)}${check.message ? `: ${check.message}` : ''}`} />
+                <StatusBadge
+                  key={name}
+                  tone={check.ok ? 'good' : 'critical'}
+                  label={`${CHECK_LABELS[name] ?? humanize(name)}${check.message ? `: ${check.message}` : ''}`}
+                />
               ))}
             </div>
             <Card className="p-4">
@@ -98,11 +116,20 @@ function NodeDetail({ node, onClose }: { node: AdminNodeDto | null; onClose: () 
                   { key: 'memory', label: 'Memory', color: '--chart-2' },
                 ]}
                 formatValue={(value) => `${Math.round(value)}%`}
-                formatX={(value) => new Date(value).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                formatX={(value) =>
+                  new Date(value).toLocaleTimeString(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                }
               />
             </Card>
             <div>
-              <Button variant="outline" className="text-destructive" onClick={() => setConfirm(true)}>
+              <Button
+                variant="outline"
+                className="text-destructive"
+                onClick={() => setConfirm(true)}
+              >
                 Deregister node
               </Button>
             </div>
@@ -124,11 +151,18 @@ function NodeDetail({ node, onClose }: { node: AdminNodeDto | null; onClose: () 
 }
 
 export function NodesView() {
-  const { data: nodes = [] } = useQuery({ queryKey: ['admin', 'nodes'], queryFn: () => api.admin.nodes(), refetchInterval: 15_000 });
+  const { data: nodes = [] } = useQuery({
+    queryKey: ['admin', 'nodes'],
+    queryFn: () => api.admin.nodes(),
+    refetchInterval: 15_000,
+  });
   const [selected, setSelected] = useState<AdminNodeDto | null>(null);
   return (
     <>
-      <PageHeader title="Nodes" description="Agents report heartbeats every 15 seconds; metrics stream live." />
+      <PageHeader
+        title="Nodes"
+        description="Agents report heartbeats every 15 seconds; metrics stream live."
+      />
       <Card className="p-0">
         <Table>
           <TableHeader>
@@ -151,7 +185,7 @@ export function NodesView() {
               <TableRow key={node.id} className="cursor-pointer" onClick={() => setSelected(node)}>
                 <TableCell>
                   <div className="font-mono text-xs font-semibold">{node.serverName}</div>
-                  <div className="text-xs text-muted-foreground">{node.publicIpv4}</div>
+                  <div className="text-muted-foreground text-xs">{node.publicIpv4}</div>
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={node.status} />
@@ -162,15 +196,25 @@ export function NodesView() {
                 <TableCell className="tabular">{node.metrics.cpuPercent.toFixed(0)}%</TableCell>
                 <TableCell className="tabular">{node.metrics.memoryPercent.toFixed(0)}%</TableCell>
                 <TableCell className="tabular">{node.metrics.diskPercent.toFixed(0)}%</TableCell>
-                <TableCell className="tabular text-muted-foreground">{formatBitrate(Math.max(node.metrics.rxBps, node.metrics.txBps))}</TableCell>
+                <TableCell className="tabular text-muted-foreground">
+                  {formatBitrate(Math.max(node.metrics.rxBps, node.metrics.txBps))}
+                </TableCell>
                 <TableCell className="tabular">
-                  {node.metrics.activePeers} <span className="text-xs text-muted-foreground">({node.metrics.activeConnections} live)</span>
+                  {node.metrics.activePeers}{' '}
+                  <span className="text-muted-foreground text-xs">
+                    ({node.metrics.activeConnections} live)
+                  </span>
                 </TableCell>
                 <TableCell>
-                  <StatusBadge tone={node.appliedPeerRevision === node.peerRevision ? 'good' : 'warning'} label={node.appliedPeerRevision === node.peerRevision ? 'In sync' : 'Pending'} />
+                  <StatusBadge
+                    tone={node.appliedPeerRevision === node.peerRevision ? 'good' : 'warning'}
+                    label={node.appliedPeerRevision === node.peerRevision ? 'In sync' : 'Pending'}
+                  />
                 </TableCell>
                 <TableCell className="font-mono text-xs">{node.agentVersion ?? '—'}</TableCell>
-                <TableCell className="text-muted-foreground">{formatRelative(node.lastHeartbeatAt)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatRelative(node.lastHeartbeatAt)}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -32,9 +32,12 @@ export const displayNameSchema = z
   .trim()
   .min(1)
   .max(100)
-  .refine((value) => !/[<>{}\\]/.test(value) && ![...value].some((char) => char.charCodeAt(0) < 32), {
-    message: 'Name contains invalid characters',
-  });
+  .refine(
+    (value) => !/[<>{}\\]/.test(value) && ![...value].some((char) => char.charCodeAt(0) < 32),
+    {
+      message: 'Name contains invalid characters',
+    },
+  );
 
 export const countryCodeSchema = z
   .string()
@@ -60,9 +63,15 @@ export const hostnameSchema = z
   .trim()
   .toLowerCase()
   .max(253)
-  .regex(/^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/, 'Invalid hostname');
+  .regex(
+    /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/,
+    'Invalid hostname',
+  );
 
-export const wireguardKeySchema = z.string().trim().refine(isValidWireGuardKey, 'Invalid WireGuard key');
+export const wireguardKeySchema = z
+  .string()
+  .trim()
+  .refine(isValidWireGuardKey, 'Invalid WireGuard key');
 
 export const booleanQuerySchema = z
   .enum(['true', 'false', '1', '0'])

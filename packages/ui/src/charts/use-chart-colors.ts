@@ -2,12 +2,22 @@
 
 import { useEffect, useState } from 'react';
 
-const TOKENS = ['--chart-1', '--chart-2', '--chart-grid', '--chart-axis', '--chart-surface', '--foreground', '--muted-foreground'] as const;
+const TOKENS = [
+  '--chart-1',
+  '--chart-2',
+  '--chart-grid',
+  '--chart-axis',
+  '--chart-surface',
+  '--foreground',
+  '--muted-foreground',
+] as const;
 export type ChartToken = (typeof TOKENS)[number];
 
 function read(): Record<ChartToken, string> {
   const style = getComputedStyle(document.documentElement);
-  return Object.fromEntries(TOKENS.map((token) => [token, style.getPropertyValue(token).trim()])) as Record<ChartToken, string>;
+  return Object.fromEntries(
+    TOKENS.map((token) => [token, style.getPropertyValue(token).trim()]),
+  ) as Record<ChartToken, string>;
 }
 
 /**
@@ -19,7 +29,10 @@ export function useChartColors(): Record<ChartToken, string> | null {
   useEffect(() => {
     setColors(read());
     const observer = new MutationObserver(() => setColors(read()));
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style', 'data-theme'] });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class', 'style', 'data-theme'],
+    });
     return () => observer.disconnect();
   }, []);
   return colors;

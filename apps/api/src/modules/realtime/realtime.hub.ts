@@ -30,7 +30,8 @@ export class RealtimeHub {
     this.subscriber.on('message', (channel: string, raw: string) => {
       try {
         const payload = JSON.parse(raw) as { userId?: string; message: RealtimeMessage };
-        if (channel === CHANNEL_USER_EVENTS && payload.userId) this.sendToUser(payload.userId, payload.message);
+        if (channel === CHANNEL_USER_EVENTS && payload.userId)
+          this.sendToUser(payload.userId, payload.message);
         if (channel === CHANNEL_ADMIN_EVENTS) this.broadcastAdmins(payload.message);
       } catch (error) {
         this.logger.warn({ err: error }, 'invalid realtime payload');

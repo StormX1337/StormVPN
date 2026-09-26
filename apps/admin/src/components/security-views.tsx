@@ -43,15 +43,28 @@ function EventsTab() {
   const [page, setPage] = useState(1);
   const { data } = useQuery({
     queryKey: ['admin', 'security-events', severity, type, unresolvedOnly, page],
-    queryFn: () => api.admin.securityEvents({ severity, type, unresolvedOnly: unresolvedOnly ? 'true' : undefined, page }),
+    queryFn: () =>
+      api.admin.securityEvents({
+        severity,
+        type,
+        unresolvedOnly: unresolvedOnly ? 'true' : undefined,
+        page,
+      }),
     refetchInterval: 30_000,
     placeholderData: (previous) => previous,
   });
-  const resolve = useAction((id: string) => api.admin.resolveSecurityEvent(id), { invalidate: [['admin', 'security-events']] });
+  const resolve = useAction((id: string) => api.admin.resolveSecurityEvent(id), {
+    invalidate: [['admin', 'security-events']],
+  });
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <NativeSelect className="sm:w-44" value={severity} onChange={(event) => setSeverity(event.target.value)} aria-label="Severity">
+        <NativeSelect
+          className="sm:w-44"
+          value={severity}
+          onChange={(event) => setSeverity(event.target.value)}
+          aria-label="Severity"
+        >
           <option value="">All severities</option>
           {Object.values(Severity).map((value) => (
             <option key={value} value={value}>
@@ -59,7 +72,12 @@ function EventsTab() {
             </option>
           ))}
         </NativeSelect>
-        <NativeSelect className="sm:w-64" value={type} onChange={(event) => setType(event.target.value)} aria-label="Event type">
+        <NativeSelect
+          className="sm:w-64"
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+          aria-label="Event type"
+        >
           <option value="">All event types</option>
           {Object.values(SecurityEventType).map((value) => (
             <option key={value} value={value}>
@@ -67,7 +85,7 @@ function EventsTab() {
             </option>
           ))}
         </NativeSelect>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <label className="text-muted-foreground flex items-center gap-2 text-sm">
           <Switch checked={unresolvedOnly} onCheckedChange={setUnresolvedOnly} /> Unresolved only
         </label>
       </div>
@@ -87,17 +105,23 @@ function EventsTab() {
           <TableBody>
             {data?.items.map((event) => (
               <TableRow key={event.id}>
-                <TableCell className="text-muted-foreground">{formatDateTime(event.createdAt)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {formatDateTime(event.createdAt)}
+                </TableCell>
                 <TableCell>{humanize(event.type)}</TableCell>
                 <TableCell>
                   <StatusBadge status={event.severity} label={humanize(event.severity)} />
                 </TableCell>
                 <TableCell>{event.userEmail ?? '—'}</TableCell>
                 <TableCell className="font-mono text-xs">{event.ipAddress ?? '—'}</TableCell>
-                <TableCell className="max-w-72 truncate font-mono text-xs text-muted-foreground">{event.metadata ? JSON.stringify(event.metadata) : '—'}</TableCell>
+                <TableCell className="text-muted-foreground max-w-72 truncate font-mono text-xs">
+                  {event.metadata ? JSON.stringify(event.metadata) : '—'}
+                </TableCell>
                 <TableCell className="text-right">
                   {event.resolvedAt ? (
-                    <span className="text-xs text-muted-foreground">resolved {formatRelative(event.resolvedAt)}</span>
+                    <span className="text-muted-foreground text-xs">
+                      resolved {formatRelative(event.resolvedAt)}
+                    </span>
                   ) : (
                     <Button size="sm" variant="outline" onClick={() => resolve.mutate(event.id)}>
                       Resolve
@@ -110,7 +134,12 @@ function EventsTab() {
         </Table>
         {data ? (
           <div className="px-4">
-            <Pagination page={data.page} pageSize={data.pageSize} total={data.total} onPageChange={setPage} />
+            <Pagination
+              page={data.page}
+              pageSize={data.pageSize}
+              total={data.total}
+              onPageChange={setPage}
+            />
           </div>
         ) : null}
       </Card>
@@ -119,13 +148,19 @@ function EventsTab() {
 }
 
 function RiskFlagsTab() {
-  const { data: flags = [] } = useQuery({ queryKey: ['admin', 'risk-flags'], queryFn: () => api.admin.riskFlags() });
+  const { data: flags = [] } = useQuery({
+    queryKey: ['admin', 'risk-flags'],
+    queryFn: () => api.admin.riskFlags(),
+  });
   const invalidate = [['admin', 'risk-flags']];
-  const create = useAction((input: Parameters<typeof api.admin.createRiskFlag>[0]) => api.admin.createRiskFlag(input), { success: 'Risk flag created', invalidate });
+  const create = useAction(
+    (input: Parameters<typeof api.admin.createRiskFlag>[0]) => api.admin.createRiskFlag(input),
+    { success: 'Risk flag created', invalidate },
+  );
   const resolve = useAction((id: string) => api.admin.resolveRiskFlag(id), { invalidate });
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-2 p-0">
+      <Card className="p-0 lg:col-span-2">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -145,8 +180,12 @@ function RiskFlagsTab() {
                 </TableCell>
                 <TableCell className="max-w-64 truncate">{flag.reason}</TableCell>
                 <TableCell className="tabular">{flag.score}</TableCell>
-                <TableCell className="text-xs text-muted-foreground">{flag.source.toLowerCase()}</TableCell>
-                <TableCell className="text-muted-foreground">{flag.expiresAt ? formatRelative(flag.expiresAt) : 'never'}</TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  {flag.source.toLowerCase()}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {flag.expiresAt ? formatRelative(flag.expiresAt) : 'never'}
+                </TableCell>
                 <TableCell className="text-right">
                   <Button size="sm" variant="ghost" onClick={() => resolve.mutate(flag.id)}>
                     Resolve
@@ -156,7 +195,7 @@ function RiskFlagsTab() {
             ))}
             {flags.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground py-8 text-center">
                   No active risk flags
                 </TableCell>
               </TableRow>
@@ -168,14 +207,19 @@ function RiskFlagsTab() {
         <CardHeader>
           <div>
             <CardTitle>Flag an IP or account</CardTitle>
-            <CardDescription>IP flags ≥ 50 block registrations; user flags add to the abuse score.</CardDescription>
+            <CardDescription>
+              IP flags ≥ 50 block registrations; user flags add to the abuse score.
+            </CardDescription>
           </div>
         </CardHeader>
         <form
           className="grid gap-3"
           onSubmit={(event) => {
             event.preventDefault();
-            const form = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<string, string>;
+            const form = Object.fromEntries(new FormData(event.currentTarget).entries()) as Record<
+              string,
+              string
+            >;
             create.mutate({
               subjectType: form.subjectType as 'USER' | 'IP',
               subjectValue: form.subjectValue ?? '',
@@ -192,8 +236,22 @@ function RiskFlagsTab() {
           <Input name="subjectValue" placeholder="203.0.113.5 or user UUID" required />
           <Textarea name="reason" placeholder="Reason" required />
           <div className="grid grid-cols-2 gap-2">
-            <Input name="score" type="number" min={1} max={1000} placeholder="Score" defaultValue={50} aria-label="Score" />
-            <Input name="expiresInHours" type="number" min={1} placeholder="Expires in h" aria-label="Expires in hours" />
+            <Input
+              name="score"
+              type="number"
+              min={1}
+              max={1000}
+              placeholder="Score"
+              defaultValue={50}
+              aria-label="Score"
+            />
+            <Input
+              name="expiresInHours"
+              type="number"
+              min={1}
+              placeholder="Expires in h"
+              aria-label="Expires in hours"
+            />
           </div>
           <Button type="submit" disabled={create.isPending}>
             Create flag
@@ -207,7 +265,10 @@ function RiskFlagsTab() {
 export function SecurityView() {
   return (
     <>
-      <PageHeader title="Security" description="Security events, abuse monitoring and risk flags." />
+      <PageHeader
+        title="Security"
+        description="Security events, abuse monitoring and risk flags."
+      />
       <Tabs defaultValue="events">
         <TabsList>
           <TabsTrigger value="events">Security events</TabsTrigger>
@@ -226,30 +287,52 @@ export function SecurityView() {
 
 function SettingsForm({ settings }: { settings: SystemSettingsDto }) {
   const [draft, setDraft] = useState(settings);
-  const save = useAction(() => api.admin.updateSettings({ ...draft, defaultDns: draft.defaultDns.length ? draft.defaultDns : undefined }), {
-    success: 'Settings saved',
-    invalidate: [['admin', 'settings'], ['admin', 'stats']],
-  });
-  const set = <K extends keyof SystemSettingsDto>(key: K, value: SystemSettingsDto[K]) => setDraft((current) => ({ ...current, [key]: value }));
+  const save = useAction(
+    () =>
+      api.admin.updateSettings({
+        ...draft,
+        defaultDns: draft.defaultDns.length ? draft.defaultDns : undefined,
+      }),
+    {
+      success: 'Settings saved',
+      invalidate: [
+        ['admin', 'settings'],
+        ['admin', 'stats'],
+      ],
+    },
+  );
+  const set = <K extends keyof SystemSettingsDto>(key: K, value: SystemSettingsDto[K]) =>
+    setDraft((current) => ({ ...current, [key]: value }));
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card>
         <CardHeader>
           <div>
             <CardTitle>Maintenance mode</CardTitle>
-            <CardDescription>Blocks new customer connections platform-wide. Existing tunnels keep working.</CardDescription>
+            <CardDescription>
+              Blocks new customer connections platform-wide. Existing tunnels keep working.
+            </CardDescription>
           </div>
-          <Wrench className="size-4 text-muted-foreground" />
+          <Wrench className="text-muted-foreground size-4" />
         </CardHeader>
         <label className="flex items-center gap-3 text-sm">
-          <Switch checked={draft.maintenanceMode} onCheckedChange={(checked) => set('maintenanceMode', checked)} /> Maintenance mode enabled
+          <Switch
+            checked={draft.maintenanceMode}
+            onCheckedChange={(checked) => set('maintenanceMode', checked)}
+          />{' '}
+          Maintenance mode enabled
         </label>
         <Field label="Message shown to customers" htmlFor="maintenanceMessage">
-          <Textarea id="maintenanceMessage" value={draft.maintenanceMessage ?? ''} onChange={(event) => set('maintenanceMessage', event.target.value || null)} />
+          <Textarea
+            id="maintenanceMessage"
+            value={draft.maintenanceMessage ?? ''}
+            onChange={(event) => set('maintenanceMessage', event.target.value || null)}
+          />
         </Field>
         {draft.maintenanceMode ? (
           <Alert variant="warning">
-            <Wrench /> <span>Customers cannot create new connections while maintenance mode is on.</span>
+            <Wrench />{' '}
+            <span>Customers cannot create new connections while maintenance mode is on.</span>
           </Alert>
         ) : null}
       </Card>
@@ -259,22 +342,53 @@ function SettingsForm({ settings }: { settings: SystemSettingsDto }) {
             <CardTitle>Platform & abuse controls</CardTitle>
             <CardDescription>Runtime tunables – changes apply within seconds.</CardDescription>
           </div>
-          <ShieldAlert className="size-4 text-muted-foreground" />
+          <ShieldAlert className="text-muted-foreground size-4" />
         </CardHeader>
         <label className="flex items-center gap-3 text-sm">
-          <Switch checked={draft.registrationEnabled} onCheckedChange={(checked) => set('registrationEnabled', checked)} /> New registrations allowed
+          <Switch
+            checked={draft.registrationEnabled}
+            onCheckedChange={(checked) => set('registrationEnabled', checked)}
+          />{' '}
+          New registrations allowed
         </label>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Auto-suspend risk score" htmlFor="abuseAutoSuspendScore">
-            <Input id="abuseAutoSuspendScore" type="number" min={10} value={draft.abuseAutoSuspendScore} onChange={(event) => set('abuseAutoSuspendScore', Number(event.target.value))} />
+            <Input
+              id="abuseAutoSuspendScore"
+              type="number"
+              min={10}
+              value={draft.abuseAutoSuspendScore}
+              onChange={(event) => set('abuseAutoSuspendScore', Number(event.target.value))}
+            />
           </Field>
           <Field label="Config generations / hour" htmlFor="maxConfigGenerationsPerHour">
-            <Input id="maxConfigGenerationsPerHour" type="number" min={1} value={draft.maxConfigGenerationsPerHour} onChange={(event) => set('maxConfigGenerationsPerHour', Number(event.target.value))} />
+            <Input
+              id="maxConfigGenerationsPerHour"
+              type="number"
+              min={1}
+              value={draft.maxConfigGenerationsPerHour}
+              onChange={(event) => set('maxConfigGenerationsPerHour', Number(event.target.value))}
+            />
           </Field>
-          <Field label="Overload threshold (%)" htmlFor="serverOverloadThreshold" hint="Nodes above this load get no new users">
-            <Input id="serverOverloadThreshold" type="number" min={50} max={100} value={draft.serverOverloadThreshold} onChange={(event) => set('serverOverloadThreshold', Number(event.target.value))} />
+          <Field
+            label="Overload threshold (%)"
+            htmlFor="serverOverloadThreshold"
+            hint="Nodes above this load get no new users"
+          >
+            <Input
+              id="serverOverloadThreshold"
+              type="number"
+              min={50}
+              max={100}
+              value={draft.serverOverloadThreshold}
+              onChange={(event) => set('serverOverloadThreshold', Number(event.target.value))}
+            />
           </Field>
-          <Field label="Fallback DNS" htmlFor="defaultDns" hint="Empty = node resolver on the gateway">
+          <Field
+            label="Fallback DNS"
+            htmlFor="defaultDns"
+            hint="Empty = node resolver on the gateway"
+          >
             <Input
               id="defaultDns"
               value={draft.defaultDns.join(', ')}
@@ -301,10 +415,16 @@ function SettingsForm({ settings }: { settings: SystemSettingsDto }) {
 }
 
 export function SettingsView() {
-  const { data } = useQuery({ queryKey: ['admin', 'settings'], queryFn: () => api.admin.settings() });
+  const { data } = useQuery({
+    queryKey: ['admin', 'settings'],
+    queryFn: () => api.admin.settings(),
+  });
   return (
     <>
-      <PageHeader title="Settings" description="Global platform configuration. All changes are audited." />
+      <PageHeader
+        title="Settings"
+        description="Global platform configuration. All changes are audited."
+      />
       {data ? <SettingsForm settings={data} /> : null}
     </>
   );

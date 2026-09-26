@@ -32,35 +32,50 @@ export async function billingRoutes(fastify: FastifyInstance): Promise<void> {
     routes.post('/change-plan', { schema: { body: changePlanSchema } }, async (request) =>
       billing.changePlan(authOf(request).userId, request.body.planId),
     );
-    routes.post('/cancel', async (request) => billing.setCancellation(authOf(request).userId, true));
-    routes.post('/resume', async (request) => billing.setCancellation(authOf(request).userId, false));
+    routes.post('/cancel', async (request) =>
+      billing.setCancellation(authOf(request).userId, true),
+    );
+    routes.post('/resume', async (request) =>
+      billing.setCancellation(authOf(request).userId, false),
+    );
     routes.get('/invoices', async (request) => billing.invoices(authOf(request).userId));
     routes.post('/coupons/validate', { schema: { body: validateCouponSchema } }, async (request) =>
-      toCouponDto(await coupons.validate(request.body.code, authOf(request).userId, request.body.planId)),
+      toCouponDto(
+        await coupons.validate(request.body.code, authOf(request).userId, request.body.planId),
+      ),
     );
   });
 
   // Stripe webhook: raw body for signature verification, no CSRF/cookies, not rate limited per IP.
   await app.register(async (webhook) => {
     webhook.removeAllContentTypeParsers();
-    webhook.addContentTypeParser('*', { parseAs: 'buffer', bodyLimit: 1024 * 1024 }, (_request, body, done) => {
-      done(null, body);
-    });
-    webhook.post('/webhook', { config: { csrf: false, rateLimit: false } }, async (request, reply) => {
-      const { stripeWebhooks, stripeGateway } = app.services;
-      if (!stripeWebhooks || !stripeGateway) throw serviceUnavailable('billing_unavailable', 'Stripe is not configured');
-      const signature = request.headers['stripe-signature'];
-      if (typeof signature !== 'string' || !Buffer.isBuffer(request.body)) {
-        throw badRequest('invalid_signature', 'Missing Stripe signature');
-      }
-      let event;
-      try {
-        event = stripeGateway.constructEvent(request.body, signature);
-      } catch {
-        throw badRequest('invalid_signature', 'Invalid Stripe signature');
-      }
-      const outcome = await stripeWebhooks.handle(event);
-      return reply.status(200).send({ received: true, outcome });
-    });
+    webhook.addContentTypeParser(
+      '*',
+      { parseAs: 'buffer', bodyLimit: 1024 * 1024 },
+      (_request, body, done) => {
+        done(null, body);
+      },
+    );
+    webhook.post(
+      '/webhook',
+      { config: { csrf: false, rateLimit: false } },
+      async (request, reply) => {
+        const { stripeWebhooks, stripeGateway } = app.services;
+        if (!stripeWebhooks || !stripeGateway)
+          throw serviceUnavailable('billing_unavailable', 'Stripe is not configured');
+        const signature = request.headers['stripe-signature'];
+        if (typeof signature !== 'string' || !Buffer.isBuffer(request.body)) {
+          throw badRequest('invalid_signature', 'Missing Stripe signature');
+        }
+        let event;
+        try {
+          event = stripeGateway.constructEvent(request.body, signature);
+        } catch {
+          throw badRequest('invalid_signature', 'Invalid Stripe signature');
+        }
+        const outcome = await stripeWebhooks.handle(event);
+        return reply.status(200).send({ received: true, outcome });
+      },
+    );
   });
 }

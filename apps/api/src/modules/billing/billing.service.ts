@@ -30,7 +30,8 @@ export class BillingService implements AccountDeletionHook {
   ) {}
 
   private requireGateway(): StripeGateway {
-    if (!this.gateway) throw serviceUnavailable('billing_unavailable', 'Online payments are not configured');
+    if (!this.gateway)
+      throw serviceUnavailable('billing_unavailable', 'Online payments are not configured');
     return this.gateway;
   }
 
@@ -48,7 +49,9 @@ export class BillingService implements AccountDeletionHook {
       getLiveSubscription(this.db, userId),
       this.db.user.findUniqueOrThrow({ where: { id: userId }, select: { trialUsedAt: true } }),
       this.db.device.count({ where: { userId } }),
-      this.db.vPNConnection.count({ where: { userId, status: { in: ['CONNECTING', 'CONNECTED'] } } }),
+      this.db.vPNConnection.count({
+        where: { userId, status: { in: ['CONNECTING', 'CONNECTED'] } },
+      }),
       getMonthlyTrafficBytes(this.db, userId, now),
     ]);
     return {
@@ -71,14 +74,20 @@ export class BillingService implements AccountDeletionHook {
     }
     let plan = await this.db.plan.findFirst({ where: { id: input.planId, isActive: true } });
     if (!plan) throw notFound('Plan');
-    if (plan.priceCents === 0) throw badRequest('free_plan', 'The free plan does not require checkout');
+    if (plan.priceCents === 0)
+      throw badRequest('free_plan', 'The free plan does not require checkout');
 
     const live = await getLiveSubscription(this.db, userId);
     if (live?.provider === 'STRIPE') {
-      throw conflict('subscription_exists', 'You already have a paid subscription – change your plan instead');
+      throw conflict(
+        'subscription_exists',
+        'You already have a paid subscription – change your plan instead',
+      );
     }
     plan = await this.catalog.syncPlan(plan);
-    const coupon = input.couponCode ? await this.coupons.validate(input.couponCode, userId, plan.id) : null;
+    const coupon = input.couponCode
+      ? await this.coupons.validate(input.couponCode, userId, plan.id)
+      : null;
     const syncedCoupon = coupon ? await this.catalog.syncCoupon(coupon) : null;
 
     let customerId = user.stripeCustomerId;
@@ -86,7 +95,9 @@ export class BillingService implements AccountDeletionHook {
       customerId = await gateway.createCustomer({ email: user.email, name: user.name, userId });
       await this.db.user.update({ where: { id: userId }, data: { stripeCustomerId: customerId } });
     }
-    const hadTrial = user.trialUsedAt !== null || (await this.db.subscription.count({ where: { userId, provider: 'STRIPE' } })) > 0;
+    const hadTrial =
+      user.trialUsedAt !== null ||
+      (await this.db.subscription.count({ where: { userId, provider: 'STRIPE' } })) > 0;
     const minute = Math.floor(this.clock.now().getTime() / 60_000);
     const session = await gateway.createCheckoutSession({
       customerId,
@@ -106,8 +117,14 @@ export class BillingService implements AccountDeletionHook {
   async portal(userId: string): Promise<{ url: string }> {
     const gateway = this.requireGateway();
     const user = await this.db.user.findUniqueOrThrow({ where: { id: userId } });
-    if (!user.stripeCustomerId) throw badRequest('no_billing_account', 'No billing account exists yet');
-    return { url: await gateway.createPortalSession(user.stripeCustomerId, `${this.env.APP_URL}/subscription`) };
+    if (!user.stripeCustomerId)
+      throw badRequest('no_billing_account', 'No billing account exists yet');
+    return {
+      url: await gateway.createPortalSession(
+        user.stripeCustomerId,
+        `${this.env.APP_URL}/subscription`,
+      ),
+    };
   }
 
   private async liveStripeSubscription(userId: string) {
@@ -159,7 +176,11 @@ export class BillingService implements AccountDeletionHook {
   }
 
   async invoices(userId: string): Promise<InvoiceDto[]> {
-    const invoices = await this.db.invoice.findMany({ where: { userId }, orderBy: { createdAt: 'desc' }, take: 100 });
+    const invoices = await this.db.invoice.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
     return invoices.map((invoice) => ({
       id: invoice.id,
       number: invoice.number,
@@ -182,7 +203,8 @@ export class BillingService implements AccountDeletionHook {
       where: { userId, provider: 'STRIPE', status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } },
     });
     for (const subscription of subscriptions) {
-      if (subscription.stripeSubscriptionId) await this.gateway.cancelSubscriptionNow(subscription.stripeSubscriptionId);
+      if (subscription.stripeSubscriptionId)
+        await this.gateway.cancelSubscriptionNow(subscription.stripeSubscriptionId);
     }
   }
 }

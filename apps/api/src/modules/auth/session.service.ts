@@ -58,7 +58,11 @@ export class SessionService {
         lastUsedAt: now,
       },
     });
-    const access = await this.tokens.signAccessToken({ userId: user.id, sessionId: session.id, role: user.role });
+    const access = await this.tokens.signAccessToken({
+      userId: user.id,
+      sessionId: session.id,
+      role: user.role,
+    });
     return {
       session,
       user,
@@ -74,10 +78,16 @@ export class SessionService {
    * once. Presenting an already rotated token (outside a short grace window for
    * parallel tabs) is treated as theft and revokes the whole session.
    */
-  async rotate(refreshToken: string, context: Omit<SessionContext, 'clientType'>): Promise<IssuedSession> {
+  async rotate(
+    refreshToken: string,
+    context: Omit<SessionContext, 'clientType'>,
+  ): Promise<IssuedSession> {
     const hash = sha256Hex(refreshToken);
     const now = this.clock.now();
-    const session = await this.db.session.findUnique({ where: { refreshTokenHash: hash }, include: { user: true } });
+    const session = await this.db.session.findUnique({
+      where: { refreshTokenHash: hash },
+      include: { user: true },
+    });
 
     if (!session) {
       await this.detectReuse(hash, context, now);
@@ -103,7 +113,8 @@ export class SessionService {
         userAgent: context.userAgent,
       },
     });
-    if (updated.count === 0) throw unauthorized('refresh_race', 'Session refreshed concurrently, retry');
+    if (updated.count === 0)
+      throw unauthorized('refresh_race', 'Session refreshed concurrently, retry');
 
     const access = await this.tokens.signAccessToken({
       userId: session.userId,
@@ -120,10 +131,15 @@ export class SessionService {
     };
   }
 
-  private async detectReuse(hash: string, context: Omit<SessionContext, 'clientType'>, now: Date): Promise<void> {
+  private async detectReuse(
+    hash: string,
+    context: Omit<SessionContext, 'clientType'>,
+    now: Date,
+  ): Promise<void> {
     const rotated = await this.db.session.findFirst({ where: { previousRefreshTokenHash: hash } });
     if (!rotated || rotated.revokedAt) return;
-    const withinGrace = rotated.rotatedAt && now.getTime() - rotated.rotatedAt.getTime() < REFRESH_REUSE_GRACE_MS;
+    const withinGrace =
+      rotated.rotatedAt && now.getTime() - rotated.rotatedAt.getTime() < REFRESH_REUSE_GRACE_MS;
     if (withinGrace) throw unauthorized('refresh_race', 'Session refreshed concurrently, retry');
     await this.revoke(rotated.id, 'refresh_token_reuse');
     await recordSecurityEvent(this.db, {
@@ -144,7 +160,9 @@ export class SessionService {
   }
 
   async revokeByRefreshToken(refreshToken: string, reason: string): Promise<string | null> {
-    const session = await this.db.session.findUnique({ where: { refreshTokenHash: sha256Hex(refreshToken) } });
+    const session = await this.db.session.findUnique({
+      where: { refreshTokenHash: sha256Hex(refreshToken) },
+    });
     if (!session) return null;
     await this.revoke(session.id, reason);
     return session.id;
@@ -182,15 +200,22 @@ export class SessionService {
 
   /** Drops cached state (e.g. after role or verification changes) without revoking. */
   async refreshCache(userId: string): Promise<void> {
-    const sessions = await this.db.session.findMany({ where: { userId, revokedAt: null }, select: { id: true } });
-    if (sessions.length > 0) await this.redis.del(...sessions.map((s) => `${SESSION_CACHE_PREFIX}${s.id}`));
+    const sessions = await this.db.session.findMany({
+      where: { userId, revokedAt: null },
+      select: { id: true },
+    });
+    if (sessions.length > 0)
+      await this.redis.del(...sessions.map((s) => `${SESSION_CACHE_PREFIX}${s.id}`));
   }
 
   async touch(sessionId: string): Promise<void> {
     const key = `touch:${sessionId}`;
     // Update lastUsedAt at most once every 5 minutes per session.
     if (await this.redis.set(key, '1', 'EX', 300, 'NX')) {
-      await this.db.session.updateMany({ where: { id: sessionId }, data: { lastUsedAt: this.clock.now() } });
+      await this.db.session.updateMany({
+        where: { id: sessionId },
+        data: { lastUsedAt: this.clock.now() },
+      });
     }
   }
 }

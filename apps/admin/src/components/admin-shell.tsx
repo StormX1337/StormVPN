@@ -66,7 +66,7 @@ function Nav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             aria-current={active ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+              'text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
               active && 'bg-accent text-foreground shadow-[inset_2px_0_0_var(--primary)]',
             )}
           >
@@ -105,24 +105,34 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-5 overflow-y-auto border-r bg-sidebar px-3 py-5 lg:flex">
+      <aside className="bg-sidebar sticky top-0 hidden h-dvh w-60 shrink-0 flex-col gap-5 overflow-y-auto border-r px-3 py-5 lg:flex">
         <div className="flex items-center gap-2 px-2">
           <Logo />
         </div>
-        <span className="mx-2 w-fit rounded-md bg-primary/15 px-2 py-0.5 text-[11px] font-semibold tracking-wider text-primary uppercase">Admin</span>
+        <span className="bg-primary/15 text-primary mx-2 w-fit rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wider uppercase">
+          Admin
+        </span>
         <Nav />
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur lg:px-8">
-          <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation" onClick={() => setOpen(true)}>
+        <header className="bg-background/80 sticky top-0 z-30 flex h-14 items-center gap-3 border-b px-4 backdrop-blur lg:px-8">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden"
+            aria-label="Open navigation"
+            onClick={() => setOpen(true)}
+          >
             <Menu />
           </Button>
-          <span className="flex items-center gap-2 text-xs text-muted-foreground">
-            <LiveDot tone={live === 'open' ? 'good' : live === 'connecting' ? 'progress' : 'critical'} />
+          <span className="text-muted-foreground flex items-center gap-2 text-xs">
+            <LiveDot
+              tone={live === 'open' ? 'good' : live === 'connecting' ? 'progress' : 'critical'}
+            />
             {live === 'open' ? 'Live' : live === 'connecting' ? 'Connecting…' : 'Offline – polling'}
           </span>
           <div className="ml-auto flex items-center gap-2">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
+            <span className="text-muted-foreground hidden text-sm sm:inline">
               {user.email} · {user.role.toLowerCase()}
             </span>
             <ThemeToggle />
@@ -146,7 +156,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <Nav onNavigate={() => setOpen(false)} />
           </DialogContent>
         </Dialog>
-        <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-6 px-4 py-6 lg:px-8">{children}</main>
+        <main className="mx-auto flex w-full max-w-[1400px] flex-1 flex-col gap-6 px-4 py-6 lg:px-8">
+          {children}
+        </main>
       </div>
     </div>
   );

@@ -28,7 +28,10 @@ export const agentPeerStatSchema = z.object({
 });
 export type AgentPeerStat = z.infer<typeof agentPeerStatSchema>;
 
-export const healthCheckSchema = z.object({ ok: z.boolean(), message: z.string().max(300).optional() });
+export const healthCheckSchema = z.object({
+  ok: z.boolean(),
+  message: z.string().max(300).optional(),
+});
 
 export const agentHeartbeatSchema = z.object({
   agentVersion: semverSchema,

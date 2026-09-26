@@ -21,7 +21,14 @@ import {
   Tooltip,
   toast,
 } from '@stormvpn/ui';
-import { estimateLatencyMs, getCountry, haversineKm, Region, ServerClass, type ServerDto } from '@stormvpn/types';
+import {
+  estimateLatencyMs,
+  getCountry,
+  haversineKm,
+  Region,
+  ServerClass,
+  type ServerDto,
+} from '@stormvpn/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Lock, Search, ServerOff, Star } from 'lucide-react';
 import { useDeferredValue, useMemo, useState } from 'react';
@@ -43,7 +50,9 @@ const REGION_LABEL: Record<string, string> = {
 function useLatencyEstimator() {
   const { data: ip } = usePublicIp();
   const { data: me } = useMe();
-  const origin = getCountry(ip?.protected ? me?.preferredCountry : (ip?.country ?? me?.preferredCountry));
+  const origin = getCountry(
+    ip?.protected ? me?.preferredCountry : (ip?.country ?? me?.preferredCountry),
+  );
   return (server: ServerDto) =>
     origin && server.latitude !== null && server.longitude !== null
       ? estimateLatencyMs(haversineKm(origin, { lat: server.latitude, lon: server.longitude }))
@@ -58,8 +67,17 @@ export function ServersView() {
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [target, setTarget] = useState<ServerDto | null>(null);
   const deferredSearch = useDeferredValue(search);
-  const filters = { search: deferredSearch || undefined, region: region || undefined, serverClass: serverClass || undefined, onlyAvailable: onlyAvailable || undefined };
-  const { data: servers, isLoading, isPlaceholderData } = useQuery({
+  const filters = {
+    search: deferredSearch || undefined,
+    region: region || undefined,
+    serverClass: serverClass || undefined,
+    onlyAvailable: onlyAvailable || undefined,
+  };
+  const {
+    data: servers,
+    isLoading,
+    isPlaceholderData,
+  } = useQuery({
     queryKey: keys.servers(filters),
     queryFn: () => api.servers.list(filters as never),
     placeholderData: (previous) => previous,
@@ -67,13 +85,19 @@ export function ServersView() {
   });
   const latency = useLatencyEstimator();
   const sorted = useMemo(
-    () => [...(servers ?? [])].sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite) || Number(b.allowed) - Number(a.allowed)),
+    () =>
+      [...(servers ?? [])].sort(
+        (a, b) =>
+          Number(b.isFavorite) - Number(a.isFavorite) || Number(b.allowed) - Number(a.allowed),
+      ),
     [servers],
   );
 
   const toggleFavorite = async (server: ServerDto) => {
     try {
-      await (server.isFavorite ? api.servers.unfavorite(server.id) : api.servers.favorite(server.id));
+      await (server.isFavorite
+        ? api.servers.unfavorite(server.id)
+        : api.servers.favorite(server.id));
       await client.invalidateQueries({ queryKey: ['servers'] });
     } catch (error) {
       toast.error(errorMessage(error));
@@ -82,13 +106,27 @@ export function ServersView() {
 
   return (
     <>
-      <PageHeader title="Servers" description="Every location runs on StormVPN operated WireGuard nodes." />
+      <PageHeader
+        title="Servers"
+        description="Every location runs on StormVPN operated WireGuard nodes."
+      />
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="relative md:w-72">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search city, country or server" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Search servers" />
+          <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+          <Input
+            className="pl-9"
+            placeholder="Search city, country or server"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            aria-label="Search servers"
+          />
         </div>
-        <NativeSelect className="md:w-48" value={region} onChange={(event) => setRegion(event.target.value)} aria-label="Region">
+        <NativeSelect
+          className="md:w-48"
+          value={region}
+          onChange={(event) => setRegion(event.target.value)}
+          aria-label="Region"
+        >
           <option value="">All regions</option>
           {Object.values(Region).map((value) => (
             <option key={value} value={value}>
@@ -96,7 +134,12 @@ export function ServersView() {
             </option>
           ))}
         </NativeSelect>
-        <NativeSelect className="md:w-44" value={serverClass} onChange={(event) => setServerClass(event.target.value)} aria-label="Server class">
+        <NativeSelect
+          className="md:w-44"
+          value={serverClass}
+          onChange={(event) => setServerClass(event.target.value)}
+          aria-label="Server class"
+        >
           <option value="">All server classes</option>
           {Object.values(ServerClass).map((value) => (
             <option key={value} value={value}>
@@ -104,7 +147,7 @@ export function ServersView() {
             </option>
           ))}
         </NativeSelect>
-        <label className="flex items-center gap-2 text-sm text-muted-foreground">
+        <label className="text-muted-foreground flex items-center gap-2 text-sm">
           <Switch checked={onlyAvailable} onCheckedChange={setOnlyAvailable} /> Only available to me
         </label>
       </div>
@@ -136,7 +179,8 @@ export function ServersView() {
             <TableBody>
               {sorted.map((server) => {
                 const ping = latency(server);
-                const usable = server.allowed && (server.status === 'ONLINE' || server.status === 'DEGRADED');
+                const usable =
+                  server.allowed && (server.status === 'ONLINE' || server.status === 'DEGRADED');
                 return (
                   <TableRow key={server.id}>
                     <TableCell>
@@ -145,9 +189,11 @@ export function ServersView() {
                         onClick={() => void toggleFavorite(server)}
                         aria-label={server.isFavorite ? 'Remove favorite' : 'Add favorite'}
                         aria-pressed={server.isFavorite}
-                        className="rounded p-1 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground rounded p-1"
                       >
-                        <Star className={`size-4 ${server.isFavorite ? 'fill-status-warning text-status-warning' : ''}`} />
+                        <Star
+                          className={`size-4 ${server.isFavorite ? 'fill-status-warning text-status-warning' : ''}`}
+                        />
                       </button>
                     </TableCell>
                     <TableCell>
@@ -155,13 +201,15 @@ export function ServersView() {
                         <CountryFlag code={server.countryCode} />
                         <div>
                           <div className="font-medium">{server.city}</div>
-                          <div className="text-xs text-muted-foreground">{server.countryName}</div>
+                          <div className="text-muted-foreground text-xs">{server.countryName}</div>
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="font-mono text-xs">{server.name}</div>
-                      <div className="text-xs text-muted-foreground">{server.serverClass.toLowerCase()}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {server.serverClass.toLowerCase()}
+                      </div>
                     </TableCell>
                     <TableCell className="tabular text-muted-foreground">
                       {ping !== null ? (
@@ -176,7 +224,8 @@ export function ServersView() {
                       <LoadMeter value={server.load} label={`${server.name} load`} />
                     </TableCell>
                     <TableCell className="tabular text-muted-foreground">
-                      {server.availableCapacity} free <span className="text-xs">/ {server.capacity}</span>
+                      {server.availableCapacity} free{' '}
+                      <span className="text-xs">/ {server.capacity}</span>
                     </TableCell>
                     <TableCell className="tabular font-mono text-xs">{server.publicIpv4}</TableCell>
                     <TableCell className="text-xs">WireGuard</TableCell>
@@ -185,7 +234,12 @@ export function ServersView() {
                     </TableCell>
                     <TableCell className="text-right">
                       {server.allowed ? (
-                        <Button size="sm" variant={usable ? 'default' : 'outline'} disabled={!usable} onClick={() => setTarget(server)}>
+                        <Button
+                          size="sm"
+                          variant={usable ? 'default' : 'outline'}
+                          disabled={!usable}
+                          onClick={() => setTarget(server)}
+                        >
                           Connect
                         </Button>
                       ) : (

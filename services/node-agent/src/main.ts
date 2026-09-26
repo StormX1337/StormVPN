@@ -48,7 +48,9 @@ async function main(): Promise<void> {
     client,
     state,
     wireguard,
-    metrics: new SystemMetricsCollector(async () => (wan ??= await detectWanInterface(config.WAN_INTERFACE))),
+    metrics: new SystemMetricsCollector(
+      async () => (wan ??= await detectWanInterface(config.WAN_INTERFACE)),
+    ),
     health: new HealthChecker(wireguard, runner, config.AGENT_DRY_RUN),
     updater: new Updater(config.AGENT_AUTO_UPDATE, config.AGENT_UPDATE_COMMAND, runner, logger),
     logger,
@@ -69,7 +71,9 @@ async function main(): Promise<void> {
           registered: credentials !== null,
           server: credentials?.serverName ?? null,
           nodeId: credentials?.nodeId ?? null,
-          wireguard: status ? { listenPort: status.listenPort, peers: status.peers.length } : 'down',
+          wireguard: status
+            ? { listenPort: status.listenPort, peers: status.peers.length }
+            : 'down',
         },
         null,
         2,
@@ -79,7 +83,12 @@ async function main(): Promise<void> {
   }
 
   const metricsServer = config.METRICS_ENABLED
-    ? startMetricsServer(config.METRICS_HOST, config.METRICS_PORT, () => agent.snapshot, () => ({ server: agent.serverName }))
+    ? startMetricsServer(
+        config.METRICS_HOST,
+        config.METRICS_PORT,
+        () => agent.snapshot,
+        () => ({ server: agent.serverName }),
+      )
     : null;
   const shutdown = () => {
     logger.info('stopping agent (WireGuard keeps running)');
@@ -89,7 +98,10 @@ async function main(): Promise<void> {
   };
   process.on('SIGTERM', shutdown);
   process.on('SIGINT', shutdown);
-  logger.info({ version: AGENT_VERSION, dryRun: config.AGENT_DRY_RUN, api: config.STORMVPN_API_URL }, 'stormvpn-agent starting');
+  logger.info(
+    { version: AGENT_VERSION, dryRun: config.AGENT_DRY_RUN, api: config.STORMVPN_API_URL },
+    'stormvpn-agent starting',
+  );
   await agent.start();
 }
 

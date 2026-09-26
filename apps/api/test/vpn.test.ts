@@ -1,5 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { generateWireGuardKeyPair, deriveWireGuardPublicKey, PRIVATE_KEY_PLACEHOLDER } from '@stormvpn/crypto';
+import {
+  generateWireGuardKeyPair,
+  deriveWireGuardPublicKey,
+  PRIVATE_KEY_PLACEHOLDER,
+} from '@stormvpn/crypto';
 import {
   call,
   createDevice,
@@ -34,7 +38,11 @@ describe('devices', () => {
   it('enforces the plan device limit', async () => {
     const session = await registerUser(h, 'devices@example.com'); // free plan: 1 device
     await createDevice(h, session, 'Phone');
-    const second = await call(h, session, { method: 'POST', url: '/api/v1/devices', payload: { name: 'Tablet', platform: 'IOS' } });
+    const second = await call(h, session, {
+      method: 'POST',
+      url: '/api/v1/devices',
+      payload: { name: 'Tablet', platform: 'IOS' },
+    });
     expect(second.statusCode).toBe(403);
     expect(second.json().error.code).toBe('device_limit_reached');
     const list = await call(h, session, { method: 'GET', url: '/api/v1/devices' });
@@ -86,7 +94,9 @@ describe('WireGuard peer creation', () => {
     const peer = await h.db.vPNPeer.findFirstOrThrow({ where: { deviceId: device.id } });
     expect(deriveWireGuardPublicKey(privateKey)).toBe(peer.publicKey);
     // No column contains the private key.
-    expect(JSON.stringify(peer, (_key, value) => (typeof value === 'bigint' ? value.toString() : value))).not.toContain(privateKey);
+    expect(
+      JSON.stringify(peer, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)),
+    ).not.toContain(privateKey);
   });
 
   it('allocates unique addresses per server and reuses the peer for the same key', async () => {
@@ -96,10 +106,16 @@ describe('WireGuard peer creation', () => {
     const phone = await createDevice(h, session, 'Phone');
     const key = generateWireGuardKeyPair().publicKey;
     const configFor = (deviceId: string, publicKey: string) =>
-      call(h, session, { method: 'POST', url: '/api/v1/wireguard/config', payload: { deviceId, serverId: server.id, publicKey } });
+      call(h, session, {
+        method: 'POST',
+        url: '/api/v1/wireguard/config',
+        payload: { deviceId, serverId: server.id, publicKey },
+      });
 
     expect((await configFor(laptop.id, key)).json().peer.ipv4Address).toBe('10.91.0.2');
-    expect((await configFor(phone.id, generateWireGuardKeyPair().publicKey)).json().peer.ipv4Address).toBe('10.91.0.3');
+    expect(
+      (await configFor(phone.id, generateWireGuardKeyPair().publicKey)).json().peer.ipv4Address,
+    ).toBe('10.91.0.3');
     const again = (await configFor(laptop.id, key)).json();
     expect(again.peer.ipv4Address).toBe('10.91.0.2');
     expect(await h.db.vPNPeer.count()).toBe(2);
@@ -110,12 +126,20 @@ describe('WireGuard peer creation', () => {
 
   it('rejects servers outside the plan', async () => {
     const session = await registerUser(h, 'free@example.com');
-    const { server } = await createServer(h, { name: 'US-NYC-01', countryCode: 'US', city: 'New York' });
+    const { server } = await createServer(h, {
+      name: 'US-NYC-01',
+      countryCode: 'US',
+      city: 'New York',
+    });
     const device = await createDevice(h, session);
     const response = await call(h, session, {
       method: 'POST',
       url: '/api/v1/wireguard/config',
-      payload: { deviceId: device.id, serverId: server.id, publicKey: generateWireGuardKeyPair().publicKey },
+      payload: {
+        deviceId: device.id,
+        serverId: server.id,
+        publicKey: generateWireGuardKeyPair().publicKey,
+      },
     });
     expect(response.statusCode).toBe(403);
     expect(response.json().error.code).toBe('server_not_in_plan');
@@ -137,9 +161,16 @@ describe('server selection (Quick Connect)', () => {
   it('picks the least loaded eligible server and skips overloaded nodes', async () => {
     const session = await proUser();
     await createServer(h, { name: 'DE-FRA-01', load: 92, activeConnections: 460 });
-    const { server: best } = await createServer(h, { name: 'DE-FRA-02', load: 31, activeConnections: 155 });
+    const { server: best } = await createServer(h, {
+      name: 'DE-FRA-02',
+      load: 31,
+      activeConnections: 155,
+    });
     await createServer(h, { name: 'DE-FRA-03', load: 45, activeConnections: 225 });
-    const recommended = await call(h, session, { method: 'GET', url: '/api/v1/servers/recommended' });
+    const recommended = await call(h, session, {
+      method: 'GET',
+      url: '/api/v1/servers/recommended',
+    });
     expect(recommended.statusCode, recommended.body).toBe(200);
     expect(recommended.json().server.id).toBe(best.id);
 
@@ -158,10 +189,18 @@ describe('server selection (Quick Connect)', () => {
     const session = await registerUser(h, 'list@example.com');
     await createServer(h, { name: 'DE-FRA-01' });
     await createServer(h, { name: 'US-NYC-01', countryCode: 'US', city: 'New York' });
-    await createServer(h, { name: 'NL-AMS-01', countryCode: 'NL', city: 'Amsterdam', withNode: false });
+    await createServer(h, {
+      name: 'NL-AMS-01',
+      countryCode: 'NL',
+      city: 'Amsterdam',
+      withNode: false,
+    });
     const response = await call(h, session, { method: 'GET', url: '/api/v1/servers' });
     const servers = response.json() as { name: string; allowed: boolean; status: string }[];
-    expect(servers.find((s) => s.name === 'DE-FRA-01')).toMatchObject({ allowed: true, status: 'ONLINE' });
+    expect(servers.find((s) => s.name === 'DE-FRA-01')).toMatchObject({
+      allowed: true,
+      status: 'ONLINE',
+    });
     expect(servers.find((s) => s.name === 'US-NYC-01')).toMatchObject({ allowed: false });
     expect(servers.find((s) => s.name === 'NL-AMS-01')).toMatchObject({ status: 'OFFLINE' });
   });
@@ -195,7 +234,12 @@ describe('connection lifecycle', () => {
       headers: { authorization: `Bearer ${nodeToken}` },
       payload: heartbeatBody({
         peers: [
-          { publicKey: keys.publicKey, latestHandshake: Math.floor(Date.now() / 1000) - 5, rxBytesDelta: 5_000, txBytesDelta: 90_000 },
+          {
+            publicKey: keys.publicKey,
+            latestHandshake: Math.floor(Date.now() / 1000) - 5,
+            rxBytesDelta: 5_000,
+            txBytesDelta: 90_000,
+          },
         ],
       }),
     });
@@ -206,12 +250,20 @@ describe('connection lifecycle', () => {
     expect(status.json().connection.id).toBe(connectionId);
     expect(status.json().connection.rxBytes).toBe(5_000);
     expect(status.json().publicIp).toBe(server.publicIpv4);
-    expect(h.events.userEvents.some((event) => event.message.type === 'connection.updated')).toBe(true);
+    expect(h.events.userEvents.some((event) => event.message.type === 'connection.updated')).toBe(
+      true,
+    );
 
-    const traffic = await call(h, session, { method: 'GET', url: '/api/v1/traffic/summary?days=7' });
+    const traffic = await call(h, session, {
+      method: 'GET',
+      url: '/api/v1/traffic/summary?days=7',
+    });
     expect(traffic.json().rxBytes + traffic.json().txBytes).toBe(95_000);
 
-    const disconnect = await call(h, session, { method: 'DELETE', url: `/api/v1/connections/${connectionId}` });
+    const disconnect = await call(h, session, {
+      method: 'DELETE',
+      url: `/api/v1/connections/${connectionId}`,
+    });
     expect(disconnect.json().status).toBe('DISCONNECTED');
     expect(disconnect.json().disconnectReason).toBe('user');
   });
@@ -219,7 +271,11 @@ describe('connection lifecycle', () => {
   it('enforces the simultaneous connection limit', async () => {
     const session = await proUser(); // pro: 2 sessions
     const { server } = await createServer(h);
-    const devices = [await createDevice(h, session, 'A'), await createDevice(h, session, 'B'), await createDevice(h, session, 'C')];
+    const devices = [
+      await createDevice(h, session, 'A'),
+      await createDevice(h, session, 'B'),
+      await createDevice(h, session, 'C'),
+    ];
     const connect = (deviceId: string) =>
       call(h, session, {
         method: 'POST',
@@ -250,10 +306,19 @@ describe('connection lifecycle', () => {
       url: '/api/v1/agent/heartbeat',
       headers: { authorization: `Bearer ${nodeToken}` },
       payload: heartbeatBody({
-        peers: [{ publicKey: keys.publicKey, latestHandshake: Math.floor(Date.now() / 1000), rxBytesDelta: 1, txBytesDelta: 1 }],
+        peers: [
+          {
+            publicKey: keys.publicKey,
+            latestHandshake: Math.floor(Date.now() / 1000),
+            rxBytesDelta: 1,
+            txBytesDelta: 1,
+          },
+        ],
       }),
     });
-    const connection = await h.db.vPNConnection.findFirstOrThrow({ where: { userId: session.userId } });
+    const connection = await h.db.vPNConnection.findFirstOrThrow({
+      where: { userId: session.userId },
+    });
     expect(connection.source).toBe('CONFIG');
     expect(connection.status).toBe('CONNECTED');
   });
@@ -265,24 +330,41 @@ describe('connection lifecycle', () => {
     await call(h, session, {
       method: 'POST',
       url: '/api/v1/wireguard/config',
-      payload: { deviceId: device.id, serverId: server.id, publicKey: generateWireGuardKeyPair().publicKey },
+      payload: {
+        deviceId: device.id,
+        serverId: server.id,
+        publicKey: generateWireGuardKeyPair().publicKey,
+      },
     });
-    const before = (await h.db.vPNServer.findUniqueOrThrow({ where: { id: server.id } })).peerRevision;
-    const response = await call(h, session, { method: 'DELETE', url: `/api/v1/devices/${device.id}` });
+    const before = (await h.db.vPNServer.findUniqueOrThrow({ where: { id: server.id } }))
+      .peerRevision;
+    const response = await call(h, session, {
+      method: 'DELETE',
+      url: `/api/v1/devices/${device.id}`,
+    });
     expect(response.statusCode).toBe(204);
     expect(await h.db.vPNPeer.count()).toBe(0);
-    expect((await h.db.vPNServer.findUniqueOrThrow({ where: { id: server.id } })).peerRevision).toBe(before + 1);
+    expect(
+      (await h.db.vPNServer.findUniqueOrThrow({ where: { id: server.id } })).peerRevision,
+    ).toBe(before + 1);
   });
 
   it('blocks new connections in maintenance mode', async () => {
     const session = await proUser();
     const { server } = await createServer(h);
     const device = await createDevice(h, session);
-    await h.app.services.settings.update({ maintenanceMode: true, maintenanceMessage: 'Upgrading' }, null);
+    await h.app.services.settings.update(
+      { maintenanceMode: true, maintenanceMessage: 'Upgrading' },
+      null,
+    );
     const response = await call(h, session, {
       method: 'POST',
       url: '/api/v1/connections',
-      payload: { deviceId: device.id, serverId: server.id, publicKey: generateWireGuardKeyPair().publicKey },
+      payload: {
+        deviceId: device.id,
+        serverId: server.id,
+        publicKey: generateWireGuardKeyPair().publicKey,
+      },
     });
     expect(response.statusCode).toBe(503);
     expect(response.json().error.message).toBe('Upgrading');

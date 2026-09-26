@@ -22,7 +22,13 @@ import { configQrCode, downloadConfig, type GeneratedConfig } from '@/lib/wiregu
  * Shows a freshly generated WireGuard configuration. The private key was
  * created in the browser and is shown exactly once.
  */
-export function ConfigDialog({ config, onClose }: { config: GeneratedConfig | null; onClose: () => void }) {
+export function ConfigDialog({
+  config,
+  onClose,
+}: {
+  config: GeneratedConfig | null;
+  onClose: () => void;
+}) {
   const [qr, setQr] = useState<string | null>(null);
   useEffect(() => {
     setQr(null);
@@ -39,13 +45,15 @@ export function ConfigDialog({ config, onClose }: { config: GeneratedConfig | nu
                 {config.server.name} · {config.server.city}
               </DialogTitle>
               <DialogDescription>
-                Import this configuration into the official WireGuard app (Windows, macOS, Linux, Android, iOS) or a StormVPN client.
+                Import this configuration into the official WireGuard app (Windows, macOS, Linux,
+                Android, iOS) or a StormVPN client.
               </DialogDescription>
             </DialogHeader>
             <Alert>
               <KeyRound />
               <span>
-                Your private key was generated on this device and never sent to StormVPN. Save the file now – it cannot be shown again.
+                Your private key was generated on this device and never sent to StormVPN. Save the
+                file now – it cannot be shown again.
               </span>
             </Alert>
             <Tabs defaultValue="file">
@@ -55,7 +63,9 @@ export function ConfigDialog({ config, onClose }: { config: GeneratedConfig | nu
                 <TabsTrigger value="help">How to connect</TabsTrigger>
               </TabsList>
               <TabsContent value="file" className="space-y-3">
-                <pre className="max-h-64 overflow-auto rounded-lg border bg-muted/60 p-3 font-mono text-xs leading-relaxed">{config.config}</pre>
+                <pre className="bg-muted/60 max-h-64 overflow-auto rounded-lg border p-3 font-mono text-xs leading-relaxed">
+                  {config.config}
+                </pre>
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={() => downloadConfig(config)}>
                     <Download /> Download {config.fileName}
@@ -64,21 +74,34 @@ export function ConfigDialog({ config, onClose }: { config: GeneratedConfig | nu
                 </div>
               </TabsContent>
               <TabsContent value="qr" className="flex flex-col items-center gap-3">
-                {qr ? <img src={qr} alt="WireGuard configuration QR code" className="size-64 rounded-xl bg-white p-2" /> : null}
-                <p className="text-center text-sm text-muted-foreground">Open WireGuard on your phone → “+” → “Scan from QR code”.</p>
+                {qr ? (
+                  <img
+                    src={qr}
+                    alt="WireGuard configuration QR code"
+                    className="size-64 rounded-xl bg-white p-2"
+                  />
+                ) : null}
+                <p className="text-muted-foreground text-center text-sm">
+                  Open WireGuard on your phone → “+” → “Scan from QR code”.
+                </p>
               </TabsContent>
               <TabsContent value="help">
-                <ol className="list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
+                <ol className="text-muted-foreground list-decimal space-y-2 pl-5 text-sm">
                   <li>Install WireGuard from wireguard.com/install or your app store.</li>
                   <li>Import the downloaded file (desktop) or scan the QR code (mobile).</li>
                   <li>
-                    Enable the tunnel. Your dashboard switches to <strong className="text-foreground">Protected</strong> after the first handshake.
+                    Enable the tunnel. Your dashboard switches to{' '}
+                    <strong className="text-foreground">Protected</strong> after the first
+                    handshake.
                   </li>
-                  <li>Recommended: enable “Block untunneled traffic (kill switch)” in the WireGuard app on Windows/macOS/iOS.</li>
+                  <li>
+                    Recommended: enable “Block untunneled traffic (kill switch)” in the WireGuard
+                    app on Windows/macOS/iOS.
+                  </li>
                 </ol>
               </TabsContent>
             </Tabs>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Assigned address {config.assignedIpv4} · {config.selectionReason}
             </p>
           </>

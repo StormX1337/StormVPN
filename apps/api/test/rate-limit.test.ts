@@ -4,7 +4,11 @@ import { call, createHarness, type Harness, registerUser, seedPlans } from './he
 let h: Harness;
 
 beforeAll(async () => {
-  h = await createHarness({ AUTH_RATE_LIMIT_PER_MINUTE: '3', RATE_LIMIT_MAX_PER_MINUTE: '20', REGISTRATIONS_PER_IP_PER_DAY: '2' });
+  h = await createHarness({
+    AUTH_RATE_LIMIT_PER_MINUTE: '3',
+    RATE_LIMIT_MAX_PER_MINUTE: '20',
+    REGISTRATIONS_PER_IP_PER_DAY: '2',
+  });
 });
 afterAll(async () => h.close());
 beforeEach(async () => {
@@ -28,7 +32,12 @@ describe('rate limits', () => {
     }
     expect(statuses.slice(0, 3)).toEqual([202, 202, 202]);
     expect(statuses[3]).toBe(429);
-    const limited = await h.app.inject({ method: 'POST', url: '/api/v1/auth/forgot-password', headers: native, payload: { email: 'x@example.com' } });
+    const limited = await h.app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/forgot-password',
+      headers: native,
+      payload: { email: 'x@example.com' },
+    });
     expect(limited.json().error.code).toBe('rate_limited');
     expect(limited.headers['retry-after']).toBeDefined();
     expect(await h.db.securityEvent.count({ where: { type: 'RATE_LIMITED' } })).toBeGreaterThan(0);

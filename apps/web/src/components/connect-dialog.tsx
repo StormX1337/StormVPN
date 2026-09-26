@@ -1,6 +1,16 @@
 'use client';
 
-import { Button, CountryFlag, Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Field } from '@stormvpn/ui';
+import {
+  Button,
+  CountryFlag,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  Field,
+} from '@stormvpn/ui';
 import type { ServerDto } from '@stormvpn/types';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -10,12 +20,19 @@ import { DeviceSelect } from './device-select';
 import { useProvision } from './use-provision';
 
 /** Pick a device for a specific server, then connect or just download a config. */
-export function ConnectDialog({ server, onClose }: { server: ServerDto | null; onClose: () => void }) {
+export function ConnectDialog({
+  server,
+  onClose,
+}: {
+  server: ServerDto | null;
+  onClose: () => void;
+}) {
   const { data: devices = [] } = useDevices();
   const [deviceId, setDeviceId] = useState('');
   const { provision, pending, config, close } = useProvision();
   useEffect(() => {
-    if (devices.length && !devices.some((device) => device.id === deviceId)) setDeviceId(devices[0]!.id);
+    if (devices.length && !devices.some((device) => device.id === deviceId))
+      setDeviceId(devices[0]!.id);
   }, [devices, deviceId]);
 
   const run = (mode: 'connect' | 'config') => {
@@ -39,7 +56,7 @@ export function ConnectDialog({ server, onClose }: { server: ServerDto | null; o
                 </DialogDescription>
               </DialogHeader>
               {devices.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Add a device first.{' '}
                   <Link className="text-foreground underline" href="/devices">
                     Manage devices
@@ -47,14 +64,27 @@ export function ConnectDialog({ server, onClose }: { server: ServerDto | null; o
                 </p>
               ) : (
                 <Field label="Device" htmlFor="connect-device">
-                  <DeviceSelect id="connect-device" devices={devices} value={deviceId} onChange={setDeviceId} />
+                  <DeviceSelect
+                    id="connect-device"
+                    devices={devices}
+                    value={deviceId}
+                    onChange={setDeviceId}
+                  />
                 </Field>
               )}
               <DialogFooter>
-                <Button variant="outline" disabled={!deviceId || pending} onClick={() => run('config')}>
+                <Button
+                  variant="outline"
+                  disabled={!deviceId || pending}
+                  onClick={() => run('config')}
+                >
                   Download config only
                 </Button>
-                <Button variant="brand" disabled={!deviceId || pending} onClick={() => run('connect')}>
+                <Button
+                  variant="brand"
+                  disabled={!deviceId || pending}
+                  onClick={() => run('connect')}
+                >
                   Connect
                 </Button>
               </DialogFooter>

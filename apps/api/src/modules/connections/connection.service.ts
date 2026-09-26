@@ -47,7 +47,11 @@ export class ConnectionService {
           metadata: { scope: 'wireguard_config', limit: maxConfigGenerationsPerHour },
         });
       }
-      throw tooManyRequests('config_quota_exceeded', 'Too many configurations generated, try again later', quota.ttlSeconds);
+      throw tooManyRequests(
+        'config_quota_exceeded',
+        'Too many configurations generated, try again later',
+        quota.ttlSeconds,
+      );
     }
   }
 
@@ -66,14 +70,21 @@ export class ConnectionService {
       publicKey: input.publicKey,
       allowedIps: input.allowedIps,
     });
-    await this.db.device.update({ where: { id: input.deviceId }, data: { lastSeenAt: this.clock.now() } });
+    await this.db.device.update({
+      where: { id: input.deviceId },
+      data: { lastSeenAt: this.clock.now() },
+    });
     return {
       ...provisioned.wireguard,
       selection: { strategy: outcome.strategy, score: outcome.score, reason: outcome.reason },
     };
   }
 
-  async connect(userId: string, input: CreateConnectionInput, info: RequestInfo): Promise<ConnectResultDto> {
+  async connect(
+    userId: string,
+    input: CreateConnectionInput,
+    info: RequestInfo,
+  ): Promise<ConnectResultDto> {
     const { entitlements } = await this.access.check(userId, input.deviceId);
 
     // Reconnecting / switching server on the same device ends its previous session.
@@ -81,7 +92,9 @@ export class ConnectionService {
       where: { userId, deviceId: input.deviceId, status: { in: [...LIVE] } },
       data: { status: 'DISCONNECTED', endedAt: this.clock.now(), disconnectReason: 'replaced' },
     });
-    const active = await this.db.vPNConnection.count({ where: { userId, status: { in: [...LIVE] } } });
+    const active = await this.db.vPNConnection.count({
+      where: { userId, status: { in: [...LIVE] } },
+    });
     if (active >= entitlements.maxSessions) {
       await recordSecurityEvent(this.db, {
         userId,
@@ -89,7 +102,10 @@ export class ConnectionService {
         ipAddress: info.ipAddress,
         metadata: { active, limit: entitlements.maxSessions },
       });
-      throw conflict('connection_limit_reached', `Your plan allows ${entitlements.maxSessions} simultaneous connection(s)`);
+      throw conflict(
+        'connection_limit_reached',
+        `Your plan allows ${entitlements.maxSessions} simultaneous connection(s)`,
+      );
     }
     await this.enforceConfigQuota(userId, info);
 
@@ -113,7 +129,10 @@ export class ConnectionService {
       },
       include: connectionInclude,
     });
-    await this.db.device.update({ where: { id: input.deviceId }, data: { lastSeenAt: this.clock.now() } });
+    await this.db.device.update({
+      where: { id: input.deviceId },
+      data: { lastSeenAt: this.clock.now() },
+    });
     const dto = toConnectionDto(connection);
     await this.events.toUser(userId, { type: 'connection.updated', data: dto });
     return {
@@ -123,7 +142,11 @@ export class ConnectionService {
     };
   }
 
-  async disconnect(userId: string | null, connectionId: string, reason: string): Promise<ConnectionDto> {
+  async disconnect(
+    userId: string | null,
+    connectionId: string,
+    reason: string,
+  ): Promise<ConnectionDto> {
     const connection = await this.db.vPNConnection.findFirst({
       where: { id: connectionId, ...(userId ? { userId } : {}) },
     });

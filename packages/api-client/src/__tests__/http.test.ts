@@ -10,11 +10,14 @@ function mockFetch(handler: (url: string, init: RequestInit) => Response | Promi
   return { fetchImpl, calls };
 }
 
-const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+const json = (status: number, body: unknown) =>
+  new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 
 describe('HttpClient', () => {
   it('fetches a CSRF token before unsafe browser requests', async () => {
-    const { fetchImpl, calls } = mockFetch((url) => (url.endsWith('/auth/csrf') ? json(200, { csrfToken: 'csrf-123' }) : json(200, { id: 'd1' })));
+    const { fetchImpl, calls } = mockFetch((url) =>
+      url.endsWith('/auth/csrf') ? json(200, { csrfToken: 'csrf-123' }) : json(200, { id: 'd1' }),
+    );
     const api = createApiClient({ fetch: fetchImpl });
     await api.devices.create({ name: 'Laptop', platform: 'LINUX' });
     expect(calls[0]!.url).toBe('/api/v1/auth/csrf');
@@ -30,7 +33,9 @@ describe('HttpClient', () => {
         refreshed = true;
         return json(200, { user: {} });
       }
-      return refreshed ? json(200, { id: 'u1' }) : json(401, { error: { code: 'unauthorized', message: 'no' } });
+      return refreshed
+        ? json(200, { id: 'u1' })
+        : json(401, { error: { code: 'unauthorized', message: 'no' } });
     });
     const api = createApiClient({ fetch: fetchImpl });
     const [a, b] = await Promise.all([api.user.me(), api.user.me()]);
@@ -42,7 +47,9 @@ describe('HttpClient', () => {
   it('surfaces API errors with codes and notifies on session expiry', async () => {
     let expired = 0;
     const { fetchImpl } = mockFetch((url) =>
-      url.endsWith('/auth/refresh') ? json(401, { error: { code: 'invalid_refresh_token', message: 'x' } }) : json(401, { error: { code: 'unauthorized', message: 'Auth' } }),
+      url.endsWith('/auth/refresh')
+        ? json(401, { error: { code: 'invalid_refresh_token', message: 'x' } })
+        : json(401, { error: { code: 'unauthorized', message: 'Auth' } }),
     );
     const api = createApiClient({ fetch: fetchImpl, onSessionExpired: () => expired++ });
     await expect(api.user.me()).rejects.toMatchObject({ status: 401, code: 'unauthorized' });
@@ -54,15 +61,25 @@ describe('HttpClient', () => {
     const api = createApiClient({
       fetch: fetchImpl,
       baseUrl: 'https://api.stormvpn.test',
-      tokenStore: { getAccessToken: () => 'at', getRefreshToken: () => 'rt', setTokens: () => undefined, clear: () => undefined },
+      tokenStore: {
+        getAccessToken: () => 'at',
+        getRefreshToken: () => 'rt',
+        setTokens: () => undefined,
+        clear: () => undefined,
+      },
     });
     await api.servers.list({ country: 'DE' });
     expect(calls[0]!.url).toBe('https://api.stormvpn.test/api/v1/servers?country=DE');
-    expect(calls[0]!.init.headers).toMatchObject({ authorization: 'Bearer at', 'x-stormvpn-client': 'native' });
+    expect(calls[0]!.init.headers).toMatchObject({
+      authorization: 'Bearer at',
+      'x-stormvpn-client': 'native',
+    });
   });
 
   it('exposes field errors', () => {
-    const error = new ApiError(400, 'validation_error', 'bad', { issues: [{ path: 'email', message: 'Invalid' }] });
+    const error = new ApiError(400, 'validation_error', 'bad', {
+      issues: [{ path: 'email', message: 'Invalid' }],
+    });
     expect(error.fieldErrors).toEqual({ email: 'Invalid' });
   });
 });

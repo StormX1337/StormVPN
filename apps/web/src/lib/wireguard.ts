@@ -23,7 +23,10 @@ export interface ProvisionTarget {
  * StormVPN. The private key exists solely in this page's memory and in the
  * config the user downloads or scans.
  */
-export async function provisionConfig(target: ProvisionTarget, mode: 'connect' | 'config'): Promise<GeneratedConfig> {
+export async function provisionConfig(
+  target: ProvisionTarget,
+  mode: 'connect' | 'config',
+): Promise<GeneratedConfig> {
   const keys = generateWireGuardKeyPair();
   const input = { ...target, publicKey: keys.publicKey };
   if (mode === 'connect') {

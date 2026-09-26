@@ -74,7 +74,9 @@ describe('WireGuard config rendering', () => {
     const template = renderWireGuardConfig(base);
     expect(template).toContain(PRIVATE_KEY_PLACEHOLDER);
     const pair = generateWireGuardKeyPair();
-    expect(injectPrivateKey(template, pair.privateKey)).toContain(`PrivateKey = ${pair.privateKey}`);
+    expect(injectPrivateKey(template, pair.privateKey)).toContain(
+      `PrivateKey = ${pair.privateKey}`,
+    );
   });
 
   it('prevents config injection', () => {

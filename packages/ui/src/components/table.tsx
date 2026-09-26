@@ -18,13 +18,18 @@ export function TableBody({ className, ...props }: React.ComponentProps<'tbody'>
 }
 
 export function TableRow({ className, ...props }: React.ComponentProps<'tr'>) {
-  return <tr className={cn('border-b transition-colors hover:bg-muted/40', className)} {...props} />;
+  return (
+    <tr className={cn('hover:bg-muted/40 border-b transition-colors', className)} {...props} />
+  );
 }
 
 export function TableHead({ className, ...props }: React.ComponentProps<'th'>) {
   return (
     <th
-      className={cn('h-10 px-3 text-left align-middle text-xs font-medium tracking-wide whitespace-nowrap text-muted-foreground uppercase', className)}
+      className={cn(
+        'text-muted-foreground h-10 px-3 text-left align-middle text-xs font-medium tracking-wide whitespace-nowrap uppercase',
+        className,
+      )}
       {...props}
     />
   );

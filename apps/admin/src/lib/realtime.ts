@@ -17,7 +17,9 @@ export function useAdminRealtime(enabled: boolean): 'connecting' | 'open' | 'clo
         if (message.type === 'admin.stats') client.setQueryData(['admin', 'stats'], message.data);
         if (message.type === 'admin.node') {
           client.setQueryData<AdminNodeDto[]>(['admin', 'nodes'], (nodes) =>
-            nodes?.map((node) => (node.id === message.data.id ? { ...node, ...message.data } : node)),
+            nodes?.map((node) =>
+              node.id === message.data.id ? { ...node, ...message.data } : node,
+            ),
           );
         }
       },

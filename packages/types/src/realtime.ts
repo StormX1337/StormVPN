@@ -8,7 +8,13 @@ export type RealtimeMessage =
   | { type: 'traffic.updated'; data: { connectionId: string; rxBytes: number; txBytes: number } }
   | { type: 'account.suspended'; data: { reason: string } }
   | { type: 'admin.stats'; data: AdminStatsDto }
-  | { type: 'admin.node'; data: Pick<AdminNodeDto, 'id' | 'serverId' | 'serverName' | 'status' | 'metrics' | 'lastHeartbeatAt'> }
+  | {
+      type: 'admin.node';
+      data: Pick<
+        AdminNodeDto,
+        'id' | 'serverId' | 'serverName' | 'status' | 'metrics' | 'lastHeartbeatAt'
+      >;
+    }
   | { type: 'pong'; data: { ts: number } };
 
 export type RealtimeMessageType = RealtimeMessage['type'];

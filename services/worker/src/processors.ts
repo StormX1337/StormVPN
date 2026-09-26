@@ -1,6 +1,11 @@
 import type { Job } from 'bullmq';
 import type { Logger } from '@stormvpn/config';
-import { type EmailJob, type JobContext, MAINTENANCE_HANDLERS, type MaintenanceJobName } from '@stormvpn/core';
+import {
+  type EmailJob,
+  type JobContext,
+  MAINTENANCE_HANDLERS,
+  type MaintenanceJobName,
+} from '@stormvpn/core';
 import type { Mailer } from './email/mailer';
 import { renderEmail } from './email/templates';
 
@@ -18,7 +23,10 @@ export function createMaintenanceProcessor(ctx: JobContext) {
     if (!handler) throw new Error(`Unknown maintenance job ${job.name}`);
     const started = Date.now();
     const result = await handler(ctx);
-    ctx.logger.info({ job: job.name, durationMs: Date.now() - started, result }, 'maintenance job finished');
+    ctx.logger.info(
+      { job: job.name, durationMs: Date.now() - started, result },
+      'maintenance job finished',
+    );
     return result;
   };
 }

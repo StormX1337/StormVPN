@@ -70,6 +70,10 @@ export class BullMailQueue implements MailQueue {
 export function createMaintenanceQueue(connection: ConnectionOptions): Queue {
   return new Queue(QUEUE_MAINTENANCE, {
     connection,
-    defaultJobOptions: { attempts: 1, removeOnComplete: { count: 200 }, removeOnFail: { count: 500 } },
+    defaultJobOptions: {
+      attempts: 1,
+      removeOnComplete: { count: 200 },
+      removeOnFail: { count: 500 },
+    },
   });
 }

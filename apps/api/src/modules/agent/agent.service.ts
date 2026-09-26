@@ -44,9 +44,20 @@ export class AgentService {
    */
   async register(input: AgentRegisterInput, ipAddress: string): Promise<AgentRegisterResponse> {
     const now = this.clock.now();
-    const server = await this.db.vPNServer.findUnique({ where: { enrollmentTokenHash: sha256Hex(input.enrollmentToken) } });
-    if (!server || !server.enrollmentExpiresAt || server.enrollmentExpiresAt <= now || server.deletedAt) {
-      await recordSecurityEvent(this.db, { type: 'NODE_AUTH_FAILED', ipAddress, metadata: { stage: 'enrollment' } });
+    const server = await this.db.vPNServer.findUnique({
+      where: { enrollmentTokenHash: sha256Hex(input.enrollmentToken) },
+    });
+    if (
+      !server ||
+      !server.enrollmentExpiresAt ||
+      server.enrollmentExpiresAt <= now ||
+      server.deletedAt
+    ) {
+      await recordSecurityEvent(this.db, {
+        type: 'NODE_AUTH_FAILED',
+        ipAddress,
+        metadata: { stage: 'enrollment' },
+      });
       throw unauthorized('invalid_enrollment_token', 'Enrollment token is invalid or expired');
     }
     const nodeToken = generatePrefixedToken('snt', 32);
@@ -66,10 +77,18 @@ export class AgentService {
       tokenRotatedAt: now,
     };
     const node = await this.db.$transaction(async (tx) => {
-      const saved = await tx.vPNNode.upsert({ where: { serverId: server.id }, create: { serverId: server.id, ...data }, update: data });
+      const saved = await tx.vPNNode.upsert({
+        where: { serverId: server.id },
+        create: { serverId: server.id, ...data },
+        update: data,
+      });
       await tx.vPNServer.update({
         where: { id: server.id },
-        data: { enrollmentTokenHash: null, enrollmentExpiresAt: null, peerRevision: { increment: 1 } },
+        data: {
+          enrollmentTokenHash: null,
+          enrollmentExpiresAt: null,
+          peerRevision: { increment: 1 },
+        },
       });
       return saved;
     });
@@ -100,13 +119,17 @@ export class AgentService {
   private deriveStatus(serverStatus: string, heartbeat: AgentHeartbeatInput): NodeStatus {
     if (serverStatus === 'MAINTENANCE') return 'MAINTENANCE';
     const failing = Object.values(heartbeat.health).some((check) => !check.ok);
-    if (!heartbeat.wireguard.interfaceUp || failing || heartbeat.metrics.diskPercent > 95) return 'DEGRADED';
+    if (!heartbeat.wireguard.interfaceUp || failing || heartbeat.metrics.diskPercent > 95)
+      return 'DEGRADED';
     return 'ONLINE';
   }
 
   async heartbeat(nodeId: string, input: AgentHeartbeatInput): Promise<AgentHeartbeatResponse> {
     const now = this.clock.now();
-    const node = await this.db.vPNNode.findUniqueOrThrow({ where: { id: nodeId }, include: { server: true } });
+    const node = await this.db.vPNNode.findUniqueOrThrow({
+      where: { id: nodeId },
+      include: { server: true },
+    });
     const { server } = node;
 
     const telemetry = await this.telemetry.ingest(server.id, input.peers);
@@ -184,12 +207,19 @@ export class AgentService {
    */
   async config(serverId: string): Promise<AgentConfigResponse> {
     const server = await this.db.vPNServer.findUniqueOrThrow({ where: { id: serverId } });
-    const blocked = server.killSwitchEngaged || server.status === 'DISABLED' || server.deletedAt !== null;
+    const blocked =
+      server.killSwitchEngaged || server.status === 'DISABLED' || server.deletedAt !== null;
     const peers = blocked
       ? []
       : await this.db.vPNPeer.findMany({
           where: { serverId, status: 'ACTIVE', user: { status: 'ACTIVE', deletedAt: null } },
-          select: { publicKey: true, presharedKeyEnc: true, ipv4Address: true, ipv6Address: true, serverId: true },
+          select: {
+            publicKey: true,
+            presharedKeyEnc: true,
+            ipv4Address: true,
+            ipv6Address: true,
+            serverId: true,
+          },
           orderBy: { ipv4Address: 'asc' },
         });
     const prefix = subnetPrefix(server.wgSubnetV4);
@@ -199,7 +229,9 @@ export class AgentService {
       interface: {
         listenPort: server.wireguardPort,
         addressV4: `${gatewayAddress(server.wgSubnetV4)}/${prefix}`,
-        addressV6: v6Base ? `${v6Base.endsWith('::') ? `${v6Base}1` : v6Base}/${server.wgSubnetV6!.split('/')[1]}` : null,
+        addressV6: v6Base
+          ? `${v6Base.endsWith('::') ? `${v6Base}1` : v6Base}/${server.wgSubnetV6!.split('/')[1]}`
+          : null,
         subnetV4: server.wgSubnetV4,
         subnetV6: server.wgSubnetV6,
         dns: server.dnsServers,
@@ -207,7 +239,10 @@ export class AgentService {
       peers: peers.map((peer) => ({
         publicKey: peer.publicKey,
         presharedKey: this.peers.decryptPresharedKey(peer),
-        allowedIps: [`${peer.ipv4Address}/32`, ...(peer.ipv6Address ? [`${peer.ipv6Address}/128`] : [])],
+        allowedIps: [
+          `${peer.ipv4Address}/32`,
+          ...(peer.ipv6Address ? [`${peer.ipv6Address}/128`] : []),
+        ],
       })),
     };
   }
@@ -216,7 +251,11 @@ export class AgentService {
     const nodeToken = generatePrefixedToken('snt', 32);
     await this.db.vPNNode.update({
       where: { id: nodeId },
-      data: { tokenHash: sha256Hex(nodeToken), tokenPrefix: nodeToken.slice(0, 12), tokenRotatedAt: this.clock.now() },
+      data: {
+        tokenHash: sha256Hex(nodeToken),
+        tokenPrefix: nodeToken.slice(0, 12),
+        tokenRotatedAt: this.clock.now(),
+      },
     });
     return { nodeToken };
   }

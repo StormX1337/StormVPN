@@ -30,10 +30,19 @@ export class MfaService {
   }
 
   async beginSetup(user: User): Promise<{ secret: string; otpauthUrl: string }> {
-    if (user.totpEnabledAt) throw conflict('mfa_already_enabled', 'Two-factor authentication is already enabled');
+    if (user.totpEnabledAt)
+      throw conflict('mfa_already_enabled', 'Two-factor authentication is already enabled');
     const secret = generateTotpSecret();
-    await this.redis.set(this.pendingKey(user.id), this.encryptor.encrypt(secret, user.id), 'EX', PENDING_SECRET_TTL_SECONDS);
-    return { secret, otpauthUrl: buildOtpAuthUrl({ secret, accountName: user.email, issuer: ISSUER }) };
+    await this.redis.set(
+      this.pendingKey(user.id),
+      this.encryptor.encrypt(secret, user.id),
+      'EX',
+      PENDING_SECRET_TTL_SECONDS,
+    );
+    return {
+      secret,
+      otpauthUrl: buildOtpAuthUrl({ secret, accountName: user.email, issuer: ISSUER }),
+    };
   }
 
   async enable(user: User, code: string): Promise<string[]> {
@@ -55,7 +64,10 @@ export class MfaService {
       }),
       this.db.backupCode.deleteMany({ where: { userId: user.id } }),
       this.db.backupCode.createMany({
-        data: backupCodes.map((backupCode) => ({ userId: user.id, codeHash: sha256Hex(normalizeBackupCode(backupCode)) })),
+        data: backupCodes.map((backupCode) => ({
+          userId: user.id,
+          codeHash: sha256Hex(normalizeBackupCode(backupCode)),
+        })),
       }),
     ]);
     await this.redis.del(this.pendingKey(user.id));
@@ -99,7 +111,11 @@ export class MfaService {
       }),
       this.db.backupCode.deleteMany({ where: { userId: user.id } }),
     ]);
-    await recordSecurityEvent(this.db, { userId: user.id, type: 'MFA_DISABLED', severity: 'MEDIUM' });
+    await recordSecurityEvent(this.db, {
+      userId: user.id,
+      type: 'MFA_DISABLED',
+      severity: 'MEDIUM',
+    });
   }
 
   async regenerateBackupCodes(user: User): Promise<string[]> {
@@ -107,7 +123,10 @@ export class MfaService {
     await this.db.$transaction([
       this.db.backupCode.deleteMany({ where: { userId: user.id } }),
       this.db.backupCode.createMany({
-        data: backupCodes.map((backupCode) => ({ userId: user.id, codeHash: sha256Hex(normalizeBackupCode(backupCode)) })),
+        data: backupCodes.map((backupCode) => ({
+          userId: user.id,
+          codeHash: sha256Hex(normalizeBackupCode(backupCode)),
+        })),
       }),
     ]);
     return backupCodes;

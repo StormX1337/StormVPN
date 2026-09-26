@@ -68,7 +68,18 @@ export function createServices(deps: AppDeps) {
   const sessions = new SessionService(db, redis, tokens, env, clock);
   const mfa = new MfaService(db, redis, encryptor, clock);
   const bruteForce = new BruteForceGuard(counter, env);
-  const auth = new AuthService(db, redis, env, sessions, mfa, bruteForce, counter, mail, settings, clock);
+  const auth = new AuthService(
+    db,
+    redis,
+    env,
+    sessions,
+    mfa,
+    bruteForce,
+    counter,
+    mail,
+    settings,
+    clock,
+  );
 
   const catalog = new ServerCatalog(db, clock, env.NODE_OFFLINE_AFTER_SECONDS);
   const selection = new ServerSelectionService(db, catalog, settings, deps.random);
@@ -77,19 +88,46 @@ export function createServices(deps: AppDeps) {
     .register(new OwnWireGuardProvider(peers, settings, env))
     .register(new PartnerProvider(deps.partnerClient ?? null));
   const access = new VpnAccessGuard(db, settings, env, clock);
-  const connections = new ConnectionService(db, access, selection, providers, settings, counter, events, clock);
+  const connections = new ConnectionService(
+    db,
+    access,
+    selection,
+    providers,
+    settings,
+    counter,
+    events,
+    clock,
+  );
 
   const stripeGateway = deps.stripe;
   const stripeCatalog = new StripeCatalogService(db, stripeGateway);
   const coupons = new CouponService(db, clock);
-  const subscriptionSync = stripeGateway ? new SubscriptionSyncService(db, stripeGateway, clock, logger) : null;
-  const stripeWebhooks = subscriptionSync ? new StripeWebhookService(db, subscriptionSync, mail, clock, logger) : null;
-  const billing = new BillingService(db, stripeGateway, stripeCatalog, coupons, subscriptionSync, env, clock);
+  const subscriptionSync = stripeGateway
+    ? new SubscriptionSyncService(db, stripeGateway, clock, logger)
+    : null;
+  const stripeWebhooks = subscriptionSync
+    ? new StripeWebhookService(db, subscriptionSync, mail, clock, logger)
+    : null;
+  const billing = new BillingService(
+    db,
+    stripeGateway,
+    stripeCatalog,
+    coupons,
+    subscriptionSync,
+    env,
+    clock,
+  );
   const account = new AccountService(db, redis, sessions, mail, clock, [billing]);
 
   const telemetry = new TelemetryService(db, events, clock);
   const agent = new AgentService(db, redis, peers, telemetry, catalog, events, env, clock);
-  const adminStats = new AdminStatsService(db, redis, settings, clock, env.NODE_OFFLINE_AFTER_SECONDS);
+  const adminStats = new AdminStatsService(
+    db,
+    redis,
+    settings,
+    clock,
+    env.NODE_OFFLINE_AFTER_SECONDS,
+  );
 
   return {
     settings,

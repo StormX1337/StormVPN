@@ -44,7 +44,7 @@ function formatIPv6(hextets: number[]): string {
   // RFC 5952: compress the longest run of zero hextets.
   let bestStart = -1;
   let bestLength = 0;
-  for (let i = 0; i < 8; ) {
+  for (let i = 0; i < 8;) {
     if (hextets[i] !== 0) {
       i++;
       continue;
@@ -68,7 +68,8 @@ function formatIPv6(hextets: number[]): string {
 export function ipv6ForHost(subnetV6: string, index: number): string {
   const parsed = parseCidr(subnetV6);
   const hextets = parsed ? parseIPv6(parsed.address) : null;
-  if (!parsed || parsed.version !== 6 || !hextets || parsed.prefix > 96) throw new Error(`Invalid IPv6 subnet ${subnetV6}`);
+  if (!parsed || parsed.version !== 6 || !hextets || parsed.prefix > 96)
+    throw new Error(`Invalid IPv6 subnet ${subnetV6}`);
   const result = [...hextets];
   result[6] = Math.floor(index / 65536) & 0xffff;
   result[7] = index & 0xffff;

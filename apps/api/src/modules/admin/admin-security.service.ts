@@ -38,7 +38,12 @@ export class AdminSecurityService {
       ...(query.from || query.to ? { createdAt: { gte: query.from, lte: query.to } } : {}),
     };
     const [rows, total] = await Promise.all([
-      this.db.auditLog.findMany({ where, orderBy: { createdAt: 'desc' }, ...pageArgs(query), include: { actor: { select: { email: true } } } }),
+      this.db.auditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        ...pageArgs(query),
+        include: { actor: { select: { email: true } } },
+      }),
       this.db.auditLog.count({ where }),
     ]);
     return paginated(
@@ -74,7 +79,12 @@ export class AdminSecurityService {
       ...(query.unresolvedOnly ? { resolvedAt: null } : {}),
     };
     const [rows, total] = await Promise.all([
-      this.db.securityEvent.findMany({ where, orderBy: { createdAt: 'desc' }, ...pageArgs(query), include: { user: { select: { email: true } } } }),
+      this.db.securityEvent.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        ...pageArgs(query),
+        include: { user: { select: { email: true } } },
+      }),
       this.db.securityEvent.count({ where }),
     ]);
     return paginated(
@@ -100,11 +110,20 @@ export class AdminSecurityService {
       data: { resolvedAt: this.clock.now(), resolvedById: actor.actorId },
     });
     if (result.count === 0) throw notFound('Security event');
-    await writeAuditLog(this.db, { ...actor, action: 'security_event.resolve', targetType: 'security_event', targetId: id });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'security_event.resolve',
+      targetType: 'security_event',
+      targetId: id,
+    });
   }
 
   async riskFlags(): Promise<RiskFlagDto[]> {
-    const flags = await this.db.riskFlag.findMany({ where: { resolvedAt: null }, orderBy: { createdAt: 'desc' }, take: 500 });
+    const flags = await this.db.riskFlag.findMany({
+      where: { resolvedAt: null },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
+    });
     return flags.map((flag) => ({
       id: flag.id,
       subjectType: flag.subjectType,
@@ -119,12 +138,23 @@ export class AdminSecurityService {
   }
 
   async createRiskFlag(
-    input: { subjectType: RiskSubjectType; subjectValue: string; reason: string; score: number; expiresInHours?: number | null },
+    input: {
+      subjectType: RiskSubjectType;
+      subjectValue: string;
+      reason: string;
+      score: number;
+      expiresInHours?: number | null;
+    },
     actor: ActorContext,
   ): Promise<void> {
     const userId =
       input.subjectType === 'USER'
-        ? ((await this.db.user.findUnique({ where: { id: input.subjectValue }, select: { id: true } }))?.id ?? null)
+        ? ((
+            await this.db.user.findUnique({
+              where: { id: input.subjectValue },
+              select: { id: true },
+            })
+          )?.id ?? null)
         : null;
     if (input.subjectType === 'USER' && !userId) throw notFound('User');
     const flag = await this.db.riskFlag.create({
@@ -135,25 +165,49 @@ export class AdminSecurityService {
         reason: input.reason,
         score: input.score,
         source: 'ADMIN',
-        expiresAt: input.expiresInHours ? new Date(this.clock.now().getTime() + input.expiresInHours * 3600_000) : null,
+        expiresAt: input.expiresInHours
+          ? new Date(this.clock.now().getTime() + input.expiresInHours * 3600_000)
+          : null,
       },
     });
-    await writeAuditLog(this.db, { ...actor, action: 'risk_flag.create', targetType: 'risk_flag', targetId: flag.id, metadata: input });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'risk_flag.create',
+      targetType: 'risk_flag',
+      targetId: flag.id,
+      metadata: input,
+    });
   }
 
   async resolveRiskFlag(id: string, actor: ActorContext): Promise<void> {
-    const result = await this.db.riskFlag.updateMany({ where: { id, resolvedAt: null }, data: { resolvedAt: this.clock.now() } });
+    const result = await this.db.riskFlag.updateMany({
+      where: { id, resolvedAt: null },
+      data: { resolvedAt: this.clock.now() },
+    });
     if (result.count === 0) throw notFound('Risk flag');
-    await writeAuditLog(this.db, { ...actor, action: 'risk_flag.resolve', targetType: 'risk_flag', targetId: id });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'risk_flag.resolve',
+      targetType: 'risk_flag',
+      targetId: id,
+    });
   }
 
   getSettings(): Promise<SystemSettingsDto> {
     return this.settings.get();
   }
 
-  async updateSettings(input: SettingsUpdateInput, actor: ActorContext): Promise<SystemSettingsDto> {
+  async updateSettings(
+    input: SettingsUpdateInput,
+    actor: ActorContext,
+  ): Promise<SystemSettingsDto> {
     const updated = await this.settings.update(input, actor.actorId);
-    await writeAuditLog(this.db, { ...actor, action: 'settings.update', targetType: 'settings', metadata: input as Record<string, unknown> });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'settings.update',
+      targetType: 'settings',
+      metadata: input as Record<string, unknown>,
+    });
     return updated;
   }
 }

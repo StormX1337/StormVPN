@@ -7,7 +7,11 @@ export type ServerWithNode = VPNServer & { node: VPNNode | null };
  * Effective availability as seen by customers: combines the admin controlled
  * server state, the emergency kill switch and heartbeat freshness.
  */
-export function effectiveStatus(server: ServerWithNode, now: Date, offlineAfterSeconds: number): NodeStatus {
+export function effectiveStatus(
+  server: ServerWithNode,
+  now: Date,
+  offlineAfterSeconds: number,
+): NodeStatus {
   if (server.status === 'MAINTENANCE') return 'MAINTENANCE';
   if (server.status === 'DISABLED' || server.killSwitchEngaged) return 'OFFLINE';
   const node = server.node;

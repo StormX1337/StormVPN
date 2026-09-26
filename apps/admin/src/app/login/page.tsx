@@ -19,24 +19,35 @@ export default function AdminLoginPage() {
     mutationFn: (input: { email: string; password: string }) => api.auth.login(input),
     onSuccess: (result) => ('mfaRequired' in result ? setMfaToken(result.mfaToken) : done()),
   });
-  const mfa = useMutation({ mutationFn: (code: string) => api.auth.loginMfa(mfaToken!, code), onSuccess: done });
+  const mfa = useMutation({
+    mutationFn: (code: string) => api.auth.loginMfa(mfaToken!, code),
+    onSuccess: done,
+  });
   const error = login.error ?? mfa.error;
 
   return (
     <div className="hero-glow flex min-h-dvh items-center justify-center px-4">
       <form
-        className="w-full max-w-sm space-y-5 rounded-2xl border bg-card/80 p-8 shadow-2xl backdrop-blur"
+        className="bg-card/80 w-full max-w-sm space-y-5 rounded-2xl border p-8 shadow-2xl backdrop-blur"
         onSubmit={(event) => {
           event.preventDefault();
           const form = new FormData(event.currentTarget);
           if (mfaToken) mfa.mutate(String(form.get('code') ?? ''));
-          else login.mutate({ email: String(form.get('email') ?? '').trim().toLowerCase(), password: String(form.get('password') ?? '') });
+          else
+            login.mutate({
+              email: String(form.get('email') ?? '')
+                .trim()
+                .toLowerCase(),
+              password: String(form.get('password') ?? ''),
+            });
         }}
       >
         <Logo />
         <div>
           <h1 className="text-xl font-semibold">Admin sign in</h1>
-          <p className="text-sm text-muted-foreground">Staff access only. All actions are audited.</p>
+          <p className="text-muted-foreground text-sm">
+            Staff access only. All actions are audited.
+          </p>
         </div>
         {error ? (
           <Alert variant="destructive">
@@ -46,7 +57,13 @@ export default function AdminLoginPage() {
         ) : null}
         {mfaToken ? (
           <Field label="Two-factor code" htmlFor="code">
-            <Input id="code" name="code" inputMode="numeric" autoFocus autoComplete="one-time-code" />
+            <Input
+              id="code"
+              name="code"
+              inputMode="numeric"
+              autoFocus
+              autoComplete="one-time-code"
+            />
           </Field>
         ) : (
           <>
@@ -54,7 +71,13 @@ export default function AdminLoginPage() {
               <Input id="email" name="email" type="email" autoComplete="username" required />
             </Field>
             <Field label="Password" htmlFor="password">
-              <Input id="password" name="password" type="password" autoComplete="current-password" required />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
             </Field>
           </>
         )}

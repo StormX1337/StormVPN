@@ -39,8 +39,13 @@ export class SettingsService {
     return value;
   }
 
-  async update(patch: Partial<SystemSettings>, updatedById: string | null): Promise<SystemSettings> {
-    const entries = Object.entries(patch).filter(([key, value]) => KEYS.includes(key as keyof SystemSettings) && value !== undefined);
+  async update(
+    patch: Partial<SystemSettings>,
+    updatedById: string | null,
+  ): Promise<SystemSettings> {
+    const entries = Object.entries(patch).filter(
+      ([key, value]) => KEYS.includes(key as keyof SystemSettings) && value !== undefined,
+    );
     for (const [key, value] of entries) {
       const json = value as never;
       await this.db.systemSetting.upsert({

@@ -1,6 +1,10 @@
 import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { deriveWireGuardPublicKey, generateWireGuardKeyPair, isValidWireGuardKey } from '@stormvpn/crypto';
+import {
+  deriveWireGuardPublicKey,
+  generateWireGuardKeyPair,
+  isValidWireGuardKey,
+} from '@stormvpn/crypto';
 
 export interface NodeCredentials {
   apiUrl: string;
@@ -52,7 +56,8 @@ export class StateStore {
   async serverKeys(): Promise<{ privateKey: string; publicKey: string }> {
     try {
       const privateKey = (await readFile(this.path('server.key'), 'utf8')).trim();
-      if (!isValidWireGuardKey(privateKey)) throw new Error('Stored WireGuard private key is invalid');
+      if (!isValidWireGuardKey(privateKey))
+        throw new Error('Stored WireGuard private key is invalid');
       return { privateKey, publicKey: deriveWireGuardPublicKey(privateKey) };
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;

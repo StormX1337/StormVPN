@@ -24,20 +24,44 @@ export class AdminStatsService {
 
     const now = this.clock.now();
     const freshSince = new Date(now.getTime() - this.offlineAfterSeconds * 1000);
-    const [nodes, totalNodes, activeUsers, totalUsers, activeConnections, traffic, requests, errors, activeSubscriptions, settings] =
-      await Promise.all([
-        this.db.vPNNode.groupBy({ by: ['status'], where: { lastHeartbeatAt: { gte: freshSince } }, _count: { _all: true } }),
-        this.db.vPNNode.count(),
-        this.db.vPNConnection.findMany({ where: { status: 'CONNECTED' }, distinct: ['userId'], select: { userId: true } }),
-        this.db.user.count({ where: { deletedAt: null } }),
-        this.db.vPNConnection.count({ where: { status: 'CONNECTED' } }),
-        this.db.trafficUsage.aggregate({ where: { day: startOfUtcDay(now) }, _sum: { rxBytes: true, txBytes: true } }),
-        this.redis.get(apiCounterKey('requests', now)),
-        this.redis.get(apiCounterKey('errors', now)),
-        this.db.subscription.count({ where: { status: { in: LIVE_SUBSCRIPTION_STATUSES }, plan: { priceCents: { gt: 0 } } } }),
-        this.settings.get(),
-      ]);
-    const countOf = (status: string) => nodes.find((group) => group.status === status)?._count._all ?? 0;
+    const [
+      nodes,
+      totalNodes,
+      activeUsers,
+      totalUsers,
+      activeConnections,
+      traffic,
+      requests,
+      errors,
+      activeSubscriptions,
+      settings,
+    ] = await Promise.all([
+      this.db.vPNNode.groupBy({
+        by: ['status'],
+        where: { lastHeartbeatAt: { gte: freshSince } },
+        _count: { _all: true },
+      }),
+      this.db.vPNNode.count(),
+      this.db.vPNConnection.findMany({
+        where: { status: 'CONNECTED' },
+        distinct: ['userId'],
+        select: { userId: true },
+      }),
+      this.db.user.count({ where: { deletedAt: null } }),
+      this.db.vPNConnection.count({ where: { status: 'CONNECTED' } }),
+      this.db.trafficUsage.aggregate({
+        where: { day: startOfUtcDay(now) },
+        _sum: { rxBytes: true, txBytes: true },
+      }),
+      this.redis.get(apiCounterKey('requests', now)),
+      this.redis.get(apiCounterKey('errors', now)),
+      this.db.subscription.count({
+        where: { status: { in: LIVE_SUBSCRIPTION_STATUSES }, plan: { priceCents: { gt: 0 } } },
+      }),
+      this.settings.get(),
+    ]);
+    const countOf = (status: string) =>
+      nodes.find((group) => group.status === status)?._count._all ?? 0;
     const stats: AdminStatsDto = {
       onlineNodes: countOf('ONLINE'),
       totalNodes,

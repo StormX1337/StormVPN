@@ -8,7 +8,12 @@ import { buildApp } from '../../src/app';
 import { loadApiEnv, type ApiEnv } from '../../src/env';
 import type { Clock } from '../../src/lib/clock';
 import { TEST_DATABASE_URL } from '../global-setup';
-import { CapturingEventPublisher, CapturingMailQueue, FakeStripeGateway, TEST_WEBHOOK_SECRET } from './fakes';
+import {
+  CapturingEventPublisher,
+  CapturingMailQueue,
+  FakeStripeGateway,
+  TEST_WEBHOOK_SECRET,
+} from './fakes';
 
 export const TEST_REDIS_URL = process.env.TEST_REDIS_URL ?? 'redis://localhost:6379/15';
 export const PASSWORD = 'correct horse battery staple';
@@ -119,10 +124,17 @@ export interface Session {
 }
 
 export function authed(session: Session, options: InjectOptions): InjectOptions {
-  return { ...options, headers: { ...(options.headers ?? {}), authorization: `Bearer ${session.token}` } };
+  return {
+    ...options,
+    headers: { ...(options.headers ?? {}), authorization: `Bearer ${session.token}` },
+  };
 }
 
-export async function call(h: Harness, session: Session | null, options: InjectOptions): Promise<LightMyRequestResponse> {
+export async function call(
+  h: Harness,
+  session: Session | null,
+  options: InjectOptions,
+): Promise<LightMyRequestResponse> {
   return h.app.inject(session ? authed(session, options) : options);
 }
 
@@ -148,7 +160,11 @@ export async function registerUser(
   if (options.role && options.role !== 'USER') {
     await h.db.user.update({ where: { id: body.user.id }, data: { role: options.role } });
   }
-  return { token: body.tokens.accessToken, refreshToken: body.tokens.refreshToken, userId: body.user.id };
+  return {
+    token: body.tokens.accessToken,
+    refreshToken: body.tokens.refreshToken,
+    userId: body.user.id,
+  };
 }
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
@@ -271,7 +287,14 @@ export function heartbeatBody(overrides: Record<string, unknown> = {}) {
       uptimeSeconds: 3600,
       loadAverage: [0.5, 0.4, 0.3],
     },
-    wireguard: { interfaceUp: true, listenPort: 51820, peerCount: 0, appliedRevision: 1, totalRxBytes: 0, totalTxBytes: 0 },
+    wireguard: {
+      interfaceUp: true,
+      listenPort: 51820,
+      peerCount: 0,
+      appliedRevision: 1,
+      totalRxBytes: 0,
+      totalTxBytes: 0,
+    },
     health: { wireguard: { ok: true }, ipForward: { ok: true } },
     peers: [],
     ...overrides,

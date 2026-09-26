@@ -14,15 +14,78 @@ interface DemoServer {
 
 // Documentation address ranges (RFC 5737) – replace with real node IPs.
 export const DEMO_SERVERS: DemoServer[] = [
-  { name: 'DE-FRA-01', city: 'Frankfurt', publicIpv4: '203.0.113.11', serverClass: 'STANDARD', lat: 50.11, lon: 8.68 },
-  { name: 'DE-FRA-02', city: 'Frankfurt', publicIpv4: '203.0.113.12', serverClass: 'STANDARD', lat: 50.11, lon: 8.68 },
-  { name: 'DE-BER-01', city: 'Berlin', publicIpv4: '203.0.113.13', serverClass: 'PREMIUM', lat: 52.52, lon: 13.4 },
-  { name: 'NL-AMS-01', city: 'Amsterdam', publicIpv4: '203.0.113.21', serverClass: 'STANDARD', lat: 52.37, lon: 4.9 },
-  { name: 'FR-PAR-01', city: 'Paris', publicIpv4: '203.0.113.31', serverClass: 'STANDARD', lat: 48.86, lon: 2.35 },
-  { name: 'UK-LON-01', city: 'London', publicIpv4: '203.0.113.41', serverClass: 'STREAMING', lat: 51.51, lon: -0.13 },
-  { name: 'US-NYC-01', city: 'New York', publicIpv4: '198.51.100.11', serverClass: 'STANDARD', lat: 40.71, lon: -74.0 },
-  { name: 'US-LAX-01', city: 'Los Angeles', publicIpv4: '198.51.100.21', serverClass: 'STREAMING', lat: 34.05, lon: -118.24 },
-  { name: 'US-CHI-01', city: 'Chicago', publicIpv4: '198.51.100.31', serverClass: 'PREMIUM', lat: 41.88, lon: -87.63 },
+  {
+    name: 'DE-FRA-01',
+    city: 'Frankfurt',
+    publicIpv4: '203.0.113.11',
+    serverClass: 'STANDARD',
+    lat: 50.11,
+    lon: 8.68,
+  },
+  {
+    name: 'DE-FRA-02',
+    city: 'Frankfurt',
+    publicIpv4: '203.0.113.12',
+    serverClass: 'STANDARD',
+    lat: 50.11,
+    lon: 8.68,
+  },
+  {
+    name: 'DE-BER-01',
+    city: 'Berlin',
+    publicIpv4: '203.0.113.13',
+    serverClass: 'PREMIUM',
+    lat: 52.52,
+    lon: 13.4,
+  },
+  {
+    name: 'NL-AMS-01',
+    city: 'Amsterdam',
+    publicIpv4: '203.0.113.21',
+    serverClass: 'STANDARD',
+    lat: 52.37,
+    lon: 4.9,
+  },
+  {
+    name: 'FR-PAR-01',
+    city: 'Paris',
+    publicIpv4: '203.0.113.31',
+    serverClass: 'STANDARD',
+    lat: 48.86,
+    lon: 2.35,
+  },
+  {
+    name: 'UK-LON-01',
+    city: 'London',
+    publicIpv4: '203.0.113.41',
+    serverClass: 'STREAMING',
+    lat: 51.51,
+    lon: -0.13,
+  },
+  {
+    name: 'US-NYC-01',
+    city: 'New York',
+    publicIpv4: '198.51.100.11',
+    serverClass: 'STANDARD',
+    lat: 40.71,
+    lon: -74.0,
+  },
+  {
+    name: 'US-LAX-01',
+    city: 'Los Angeles',
+    publicIpv4: '198.51.100.21',
+    serverClass: 'STREAMING',
+    lat: 34.05,
+    lon: -118.24,
+  },
+  {
+    name: 'US-CHI-01',
+    city: 'Chicago',
+    publicIpv4: '198.51.100.31',
+    serverClass: 'PREMIUM',
+    lat: 41.88,
+    lon: -87.63,
+  },
 ];
 
 /** Server names use UK for the United Kingdom, ISO 3166 uses GB. */
@@ -79,7 +142,7 @@ export async function seedServers(prisma: PrismaClient) {
       wireguardPublicKey: generateWireGuardKeyPair().publicKey,
       publicIpv4: server.publicIpv4,
       cpuPercent: load * 0.7,
-      memoryPercent: 30 + (index * 7) % 40,
+      memoryPercent: 30 + ((index * 7) % 40),
       memoryTotalBytes: BigInt(8 * 1024 ** 3),
       diskPercent: 12 + index * 3,
       rxBps: BigInt(load * 400_000),
@@ -92,7 +155,11 @@ export async function seedServers(prisma: PrismaClient) {
       healthChecks: { wireguard: { ok: true }, ipForward: { ok: true }, nat: { ok: true } },
       lastHeartbeatAt: now,
     };
-    await prisma.vPNNode.upsert({ where: { serverId: server.id }, create: { serverId: server.id, ...nodeData }, update: nodeData });
+    await prisma.vPNNode.upsert({
+      where: { serverId: server.id },
+      create: { serverId: server.id, ...nodeData },
+      update: nodeData,
+    });
     demoNodes.push({ serverName: server.name, nodeToken });
   }
 

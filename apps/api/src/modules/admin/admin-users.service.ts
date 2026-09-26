@@ -39,7 +39,12 @@ export class AdminUserService {
       ...(query.status ? { status: query.status } : {}),
       ...(query.role ? { role: query.role } : {}),
       ...(query.search
-        ? { OR: [{ email: { contains: query.search, mode: 'insensitive' } }, { name: { contains: query.search, mode: 'insensitive' } }] }
+        ? {
+            OR: [
+              { email: { contains: query.search, mode: 'insensitive' } },
+              { name: { contains: query.search, mode: 'insensitive' } },
+            ],
+          }
         : {}),
     };
     const [users, total] = await Promise.all([
@@ -86,7 +91,11 @@ export class AdminUserService {
       where: { id: userId },
       include: {
         devices: { orderBy: { createdAt: 'asc' } },
-        subscriptions: { include: { plan: { select: { name: true } } }, orderBy: { createdAt: 'desc' }, take: 10 },
+        subscriptions: {
+          include: { plan: { select: { name: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        },
         sessions: { where: { revokedAt: null }, orderBy: { lastUsedAt: 'desc' }, take: 20 },
         securityEvents: { orderBy: { createdAt: 'desc' }, take: 25 },
         riskFlags: { where: { resolvedAt: null }, orderBy: { createdAt: 'desc' } },
@@ -102,14 +111,17 @@ export class AdminUserService {
         rxBytes: Number(rxBytes),
         txBytes: Number(txBytes),
       })),
-      sessions: user.sessions.map(({ refreshTokenHash: _r, previousRefreshTokenHash: _p, ...session }) => session),
+      sessions: user.sessions.map(
+        ({ refreshTokenHash: _r, previousRefreshTokenHash: _p, ...session }) => session,
+      ),
     };
   }
 
   async suspend(userId: string, reason: string, actor: ActorContext): Promise<void> {
     const user = await this.db.user.findUnique({ where: { id: userId } });
     if (!user) throw notFound('User');
-    if (user.id === actor.actorId) throw badRequest('cannot_suspend_self', 'You cannot suspend your own account');
+    if (user.id === actor.actorId)
+      throw badRequest('cannot_suspend_self', 'You cannot suspend your own account');
     await suspendUser(this.db, this.redis, userId, reason, actor);
     await this.mail.send({ template: 'account-suspended', to: user.email, data: { reason } });
   }
@@ -121,36 +133,66 @@ export class AdminUserService {
   }
 
   async setRole(userId: string, role: Role, actor: ActorContext): Promise<void> {
-    if (userId === actor.actorId) throw badRequest('cannot_change_own_role', 'You cannot change your own role');
+    if (userId === actor.actorId)
+      throw badRequest('cannot_change_own_role', 'You cannot change your own role');
     await this.db.user.update({ where: { id: userId }, data: { role } });
     await this.sessions.refreshCache(userId);
-    await writeAuditLog(this.db, { ...actor, action: 'user.role', targetType: 'user', targetId: userId, metadata: { role } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'user.role',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { role },
+    });
   }
 
   async revokeSessions(userId: string, actor: ActorContext): Promise<number> {
     const count = await revokeUserSessions(this.db, this.redis, userId, 'admin_revoked');
-    await writeAuditLog(this.db, { ...actor, action: 'user.sessions.revoke', targetType: 'user', targetId: userId, metadata: { count } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'user.sessions.revoke',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { count },
+    });
     return count;
   }
 
   async disconnect(userId: string, actor: ActorContext): Promise<number> {
     const count = await disconnectUser(this.db, userId, 'admin_terminated');
-    await writeAuditLog(this.db, { ...actor, action: 'user.disconnect', targetType: 'user', targetId: userId, metadata: { count } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'user.disconnect',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { count },
+    });
     return count;
   }
 
   /** Complimentary / manual plan assignment (no payment provider). */
-  async grantPlan(userId: string, planId: string, days: number | undefined, actor: ActorContext): Promise<void> {
+  async grantPlan(
+    userId: string,
+    planId: string,
+    days: number | undefined,
+    actor: ActorContext,
+  ): Promise<void> {
     const plan = await this.db.plan.findUnique({ where: { id: planId } });
     if (!plan) throw notFound('Plan');
     const live = await getLiveSubscription(this.db, userId);
     if (live?.provider === 'STRIPE') {
-      throw badRequest('stripe_subscription_active', 'Cancel the Stripe subscription before granting a plan');
+      throw badRequest(
+        'stripe_subscription_active',
+        'Cancel the Stripe subscription before granting a plan',
+      );
     }
     const now = this.clock.now();
     await this.db.$transaction(async (tx) => {
       if (live) {
-        await tx.subscription.update({ where: { id: live.id }, data: { status: 'CANCELED', endedAt: now, canceledAt: now } });
+        await tx.subscription.update({
+          where: { id: live.id },
+          data: { status: 'CANCELED', endedAt: now, canceledAt: now },
+        });
       }
       await tx.subscription.create({
         data: {
@@ -164,6 +206,12 @@ export class AdminUserService {
       });
     });
     await reconcileUserPeers(this.db, userId, now);
-    await writeAuditLog(this.db, { ...actor, action: 'subscription.grant', targetType: 'user', targetId: userId, metadata: { planId, days } });
+    await writeAuditLog(this.db, {
+      ...actor,
+      action: 'subscription.grant',
+      targetType: 'user',
+      targetId: userId,
+      metadata: { planId, days },
+    });
   }
 }

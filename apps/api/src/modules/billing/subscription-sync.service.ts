@@ -29,19 +29,27 @@ export class SubscriptionSyncService {
     private readonly logger: Logger,
   ) {}
 
-  async syncById(stripeSubscriptionId: string, hint?: { userId?: string | null }): Promise<string | null> {
+  async syncById(
+    stripeSubscriptionId: string,
+    hint?: { userId?: string | null },
+  ): Promise<string | null> {
     const remote = await this.gateway.retrieveSubscription(stripeSubscriptionId);
     return this.apply(remote, hint);
   }
 
   private async resolveUser(remote: NormalizedSubscription, hintUserId?: string | null) {
-    const byCustomer = await this.db.user.findUnique({ where: { stripeCustomerId: remote.customerId } });
+    const byCustomer = await this.db.user.findUnique({
+      where: { stripeCustomerId: remote.customerId },
+    });
     if (byCustomer) return byCustomer;
     const userId = hintUserId ?? remote.metadata.userId;
     if (!userId) return null;
     const user = await this.db.user.findUnique({ where: { id: userId } });
     if (user && !user.stripeCustomerId) {
-      return this.db.user.update({ where: { id: user.id }, data: { stripeCustomerId: remote.customerId } });
+      return this.db.user.update({
+        where: { id: user.id },
+        data: { stripeCustomerId: remote.customerId },
+      });
     }
     return user?.stripeCustomerId === remote.customerId ? user : null;
   }
@@ -57,10 +65,15 @@ export class SubscriptionSyncService {
       });
       if (existing) return existing.plan;
     }
-    return remote.metadata.planId ? this.db.plan.findUnique({ where: { id: remote.metadata.planId } }) : null;
+    return remote.metadata.planId
+      ? this.db.plan.findUnique({ where: { id: remote.metadata.planId } })
+      : null;
   }
 
-  async apply(remote: NormalizedSubscription, hint?: { userId?: string | null }): Promise<string | null> {
+  async apply(
+    remote: NormalizedSubscription,
+    hint?: { userId?: string | null },
+  ): Promise<string | null> {
     const user = await this.resolveUser(remote, hint?.userId);
     const plan = await this.resolvePlan(remote);
     if (!user || !plan) {
@@ -104,7 +117,9 @@ export class SubscriptionSyncService {
           data: { status: 'CANCELED', endedAt: now, canceledAt: now },
         });
       }
-      const existing = await tx.subscription.findUnique({ where: { stripeSubscriptionId: remote.id } });
+      const existing = await tx.subscription.findUnique({
+        where: { stripeSubscriptionId: remote.id },
+      });
       const saved = existing
         ? await tx.subscription.update({ where: { id: existing.id }, data })
         : await tx.subscription.create({ data: { ...data, stripeSubscriptionId: remote.id } });
@@ -118,7 +133,10 @@ export class SubscriptionSyncService {
         });
         if (!redeemed) {
           await tx.couponRedemption.create({ data: { couponId: data.couponId, userId: user.id } });
-          await tx.coupon.update({ where: { id: data.couponId }, data: { timesRedeemed: { increment: 1 } } });
+          await tx.coupon.update({
+            where: { id: data.couponId },
+            data: { timesRedeemed: { increment: 1 } },
+          });
         }
       }
       return saved.id;
@@ -126,7 +144,10 @@ export class SubscriptionSyncService {
 
     if (!isLiveStatus(status)) await ensureFreeSubscription(this.db, user.id);
     const result = await reconcileUserPeers(this.db, user.id, now);
-    this.logger.info({ userId: user.id, stripeSubscriptionId: remote.id, status, peers: result }, 'subscription synchronised');
+    this.logger.info(
+      { userId: user.id, stripeSubscriptionId: remote.id, status, peers: result },
+      'subscription synchronised',
+    );
     return subscriptionId;
   }
 }

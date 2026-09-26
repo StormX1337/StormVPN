@@ -17,12 +17,28 @@ import {
   toast,
 } from '@stormvpn/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowDownToLine, ArrowUpFromLine, Gauge, MonitorSmartphone, Power, ShieldCheck, ShieldOff, Zap } from 'lucide-react';
+import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Gauge,
+  MonitorSmartphone,
+  Power,
+  ShieldCheck,
+  ShieldOff,
+  Zap,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { errorMessage } from '@/lib/errors';
-import { keys, useDevices, useRecommended, useSubscription, useTraffic, useVpnStatus } from '@/lib/queries';
+import {
+  keys,
+  useDevices,
+  useRecommended,
+  useSubscription,
+  useTraffic,
+  useVpnStatus,
+} from '@/lib/queries';
 import { ConfigDialog } from './config-dialog';
 import { DeviceSelect } from './device-select';
 import { SessionTimer } from './session-timer';
@@ -33,7 +49,8 @@ function useSelectedDevice() {
   const { data: devices } = useDevices();
   const [deviceId, setDeviceId] = useState('');
   useEffect(() => {
-    if (devices?.length && !devices.some((device) => device.id === deviceId)) setDeviceId(devices[0]!.id);
+    if (devices?.length && !devices.some((device) => device.id === deviceId))
+      setDeviceId(devices[0]!.id);
   }, [devices, deviceId]);
   return { devices: devices ?? [], deviceId, setDeviceId };
 }
@@ -61,19 +78,28 @@ function StatusHero() {
         aria-hidden
       />
       <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center">
-        <div className={`flex size-20 shrink-0 items-center justify-center rounded-2xl border ${connected ? 'bg-emerald-500/10' : 'bg-muted'}`}>
-          {connected ? <ShieldCheck className="size-10 text-status-good" /> : <ShieldOff className="size-10 text-status-critical" />}
+        <div
+          className={`flex size-20 shrink-0 items-center justify-center rounded-2xl border ${connected ? 'bg-emerald-500/10' : 'bg-muted'}`}
+        >
+          {connected ? (
+            <ShieldCheck className="text-status-good size-10" />
+          ) : (
+            <ShieldOff className="text-status-critical size-10" />
+          )}
         </div>
         <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="text-muted-foreground flex items-center gap-2 text-sm">
             <LiveDot tone={connected ? 'good' : connecting ? 'progress' : 'critical'} />
             {connected ? 'Connected' : connecting ? 'Waiting for handshake…' : 'Disconnected'}
           </div>
-          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">{connected ? 'Your connection is protected' : 'You are not protected'}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+            {connected ? 'Your connection is protected' : 'You are not protected'}
+          </h2>
+          <p className="text-muted-foreground text-sm">
             {connection ? (
               <>
-                <CountryFlag code={connection.server.countryCode} /> {connection.server.city}, {connection.server.countryName} · {connection.server.name}
+                <CountryFlag code={connection.server.countryCode} /> {connection.server.city},{' '}
+                {connection.server.countryName} · {connection.server.name}
               </>
             ) : (
               'Quick Connect picks the fastest server with the lowest load for you.'
@@ -115,11 +141,21 @@ function StatusHero() {
                 <DeviceSelect devices={devices} value={deviceId} onChange={setDeviceId} />
               </div>
             ) : null}
-            <Button variant="brand" size="lg" disabled={pending || !deviceId} onClick={() => provision({ deviceId }, 'connect')}>
+            <Button
+              variant="brand"
+              size="lg"
+              disabled={pending || !deviceId}
+              onClick={() => provision({ deviceId }, 'connect')}
+            >
               <Zap /> {connection ? 'Reconnect' : 'Quick Connect'}
             </Button>
             {connection ? (
-              <Button variant="outline" size="lg" disabled={disconnect.isPending} onClick={() => disconnect.mutate(connection.id)}>
+              <Button
+                variant="outline"
+                size="lg"
+                disabled={disconnect.isPending}
+                onClick={() => disconnect.mutate(connection.id)}
+              >
                 <Power /> Disconnect
               </Button>
             ) : null}
@@ -143,7 +179,7 @@ function RecommendedCard({ enabled }: { enabled: boolean }) {
           <CardTitle>Quick Connect target</CardTitle>
           <CardDescription>Chosen by load, latency and your plan</CardDescription>
         </div>
-        <Gauge className="size-4 text-muted-foreground" />
+        <Gauge className="text-muted-foreground size-4" />
       </CardHeader>
       {isLoading ? (
         <Skeleton className="h-24" />
@@ -153,16 +189,18 @@ function RecommendedCard({ enabled }: { enabled: boolean }) {
             <CountryFlag code={data.server.countryCode} className="text-2xl" />
             <div>
               <p className="font-semibold">{data.server.name}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {data.server.city}, {data.server.countryName}
               </p>
             </div>
           </div>
           <LoadMeter value={data.server.load} label={`${data.server.name} load`} />
-          <p className="text-xs text-muted-foreground">{data.reason}</p>
+          <p className="text-muted-foreground text-xs">{data.reason}</p>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">{error ? errorMessage(error) : 'No subscription yet.'}</p>
+        <p className="text-muted-foreground text-sm">
+          {error ? errorMessage(error) : 'No subscription yet.'}
+        </p>
       )}
     </Card>
   );
@@ -197,8 +235,18 @@ export function DashboardView() {
         <RecommendedCard enabled={Boolean(overview?.subscription)} />
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile label="Download (session)" value={formatBytes(connection?.txBytes ?? 0)} icon={<ArrowDownToLine />} hint={connection ? connection.server.name : 'Not connected'} />
-        <StatTile label="Upload (session)" value={formatBytes(connection?.rxBytes ?? 0)} icon={<ArrowUpFromLine />} hint={connection ? connection.server.name : 'Not connected'} />
+        <StatTile
+          label="Download (session)"
+          value={formatBytes(connection?.txBytes ?? 0)}
+          icon={<ArrowDownToLine />}
+          hint={connection ? connection.server.name : 'Not connected'}
+        />
+        <StatTile
+          label="Upload (session)"
+          value={formatBytes(connection?.rxBytes ?? 0)}
+          icon={<ArrowUpFromLine />}
+          hint={connection ? connection.server.name : 'Not connected'}
+        />
         <StatTile
           label="Traffic this month"
           value={formatBytes(used)}
@@ -216,7 +264,9 @@ export function DashboardView() {
         <CardHeader>
           <div>
             <CardTitle>Traffic – last 30 days</CardTitle>
-            <CardDescription>Volume only. StormVPN never logs destinations or DNS queries.</CardDescription>
+            <CardDescription>
+              Volume only. StormVPN never logs destinations or DNS queries.
+            </CardDescription>
           </div>
         </CardHeader>
         {traffic ? <TrafficChart daily={traffic.daily} /> : <Skeleton className="h-60" />}

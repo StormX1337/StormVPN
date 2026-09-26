@@ -1,5 +1,10 @@
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { COOKIE_ACCESS_TOKEN, COOKIE_CSRF_TOKEN, COOKIE_REFRESH_TOKEN, COOKIE_SESSION_HINT } from '@stormvpn/config';
+import {
+  COOKIE_ACCESS_TOKEN,
+  COOKIE_CSRF_TOKEN,
+  COOKIE_REFRESH_TOKEN,
+  COOKIE_SESSION_HINT,
+} from '@stormvpn/config';
 import { generateToken } from '@stormvpn/crypto/node';
 import type { AuthResultDto } from '@stormvpn/types';
 import type { ApiEnv } from '../../env';
@@ -13,7 +18,11 @@ function baseCookie(env: Pick<ApiEnv, 'COOKIE_SECURE' | 'COOKIE_DOMAIN'>) {
   return { secure: env.COOKIE_SECURE, domain: env.COOKIE_DOMAIN, httpOnly: true } as const;
 }
 
-export function ensureCsrfCookie(request: FastifyRequest, reply: FastifyReply, env: ApiEnv): string {
+export function ensureCsrfCookie(
+  request: FastifyRequest,
+  reply: FastifyReply,
+  env: ApiEnv,
+): string {
   const existing = request.cookies[COOKIE_CSRF_TOKEN];
   if (existing && existing.length >= 32) return existing;
   const token = generateToken(32);

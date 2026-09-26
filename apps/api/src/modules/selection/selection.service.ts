@@ -54,11 +54,16 @@ export class ServerSelectionService {
     edgeCountryCode: string | null,
   ): Promise<SelectionOutcome> {
     const settings = await this.settings.get();
-    if (request.serverId) return this.resolveManual(request.serverId, entitlements, settings.serverOverloadThreshold);
+    if (request.serverId)
+      return this.resolveManual(request.serverId, entitlements, settings.serverOverloadThreshold);
 
     const user = await this.db.user.findUniqueOrThrow({
       where: { id: userId },
-      select: { preferredCountry: true, preferredRegion: true, favorites: { select: { serverId: true } } },
+      select: {
+        preferredCountry: true,
+        preferredRegion: true,
+        favorites: { select: { serverId: true } },
+      },
     });
     const locationCountry = getCountry(request.country ?? edgeCountryCode ?? user.preferredCountry);
     const ctx: SelectionContext = {
@@ -71,13 +76,20 @@ export class ServerSelectionService {
         preferredRegion: user.preferredRegion,
         favoriteServerIds: new Set(user.favorites.map((favorite) => favorite.serverId)),
       },
-      clientLocation: locationCountry ? { lat: locationCountry.lat, lon: locationCountry.lon } : null,
+      clientLocation: locationCountry
+        ? { lat: locationCountry.lat, lon: locationCountry.lon }
+        : null,
       latencies: request.latencies,
       overloadThreshold: settings.serverOverloadThreshold,
     };
     const servers = await this.catalog.listVisible();
-    const result = selectServer(servers.map((server) => this.toCandidate(server)), ctx, this.random);
-    if (!result) throw serviceUnavailable('no_server_available', 'No suitable server is available right now');
+    const result = selectServer(
+      servers.map((server) => this.toCandidate(server)),
+      ctx,
+      this.random,
+    );
+    if (!result)
+      throw serviceUnavailable('no_server_available', 'No suitable server is available right now');
     const server = servers.find((item) => item.id === result.selected.candidate.id)!;
     const latency = result.selected.latencyMs;
     return {
@@ -90,15 +102,25 @@ export class ServerSelectionService {
     };
   }
 
-  private async resolveManual(serverId: string, entitlements: Entitlements, overloadThreshold: number): Promise<SelectionOutcome> {
+  private async resolveManual(
+    serverId: string,
+    entitlements: Entitlements,
+    overloadThreshold: number,
+  ): Promise<SelectionOutcome> {
     const server = await this.catalog.get(serverId);
     if (!server || server.status === 'DISABLED') throw notFound('Server');
     const status = this.catalog.status(server);
     if (status !== 'ONLINE' && status !== 'DEGRADED') {
-      throw serviceUnavailable('server_unavailable', `${server.name} is currently ${status.toLowerCase()}`);
+      throw serviceUnavailable(
+        'server_unavailable',
+        `${server.name} is currently ${status.toLowerCase()}`,
+      );
     }
     if (!isServerAllowed(entitlements, server)) {
-      throw forbidden('server_not_in_plan', 'Your plan does not include this server. Upgrade to use it.');
+      throw forbidden(
+        'server_not_in_plan',
+        'Your plan does not include this server. Upgrade to use it.',
+      );
     }
     const load = server.node?.loadPercent ?? 100;
     const active = server.node?.activeConnections ?? 0;

@@ -10,7 +10,8 @@
 }
 
 .grid-fade {
-  background-image: linear-gradient(to right, rgb(148 163 184 / 0.07) 1px, transparent 1px),
+  background-image:
+    linear-gradient(to right, rgb(148 163 184 / 0.07) 1px, transparent 1px),
     linear-gradient(to bottom, rgb(148 163 184 / 0.07) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);

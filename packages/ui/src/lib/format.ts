@@ -28,18 +28,26 @@ export function formatDuration(seconds: number): string {
 }
 
 export function formatCurrency(cents: number, currency: string, locale?: string): string {
-  return new Intl.NumberFormat(locale, { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: currency.toUpperCase(),
+  }).format(cents / 100);
 }
 
 export function formatCompact(value: number): string {
-  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+  return new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(
+    value,
+  );
 }
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat('en').format(value);
 }
 
-export function formatDate(value: string | Date | null | undefined, options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' }): string {
+export function formatDate(
+  value: string | Date | null | undefined,
+  options: Intl.DateTimeFormatOptions = { dateStyle: 'medium' },
+): string {
   if (!value) return '—';
   return new Intl.DateTimeFormat(undefined, options).format(new Date(value));
 }

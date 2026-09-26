@@ -8,7 +8,11 @@ export function startHealthServer(port: number, check: () => Promise<boolean>): 
       return;
     }
     check()
-      .then((ok) => response.writeHead(ok ? 200 : 503, { 'content-type': 'application/json' }).end(JSON.stringify({ status: ok ? 'ok' : 'degraded' })))
+      .then((ok) =>
+        response
+          .writeHead(ok ? 200 : 503, { 'content-type': 'application/json' })
+          .end(JSON.stringify({ status: ok ? 'ok' : 'degraded' })),
+      )
       .catch(() => response.writeHead(503).end());
   });
   server.listen(port, '0.0.0.0');
